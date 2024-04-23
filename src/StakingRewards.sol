@@ -1,10 +1,10 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.17;
 
-import "openzeppelin-solidity-2.3.0/contracts/math/Math.sol";
-import "openzeppelin-solidity-2.3.0/contracts/math/SafeMath.sol";
-import "openzeppelin-solidity-2.3.0/contracts/token/ERC20/ERC20Detailed.sol";
-import "openzeppelin-solidity-2.3.0/contracts/token/ERC20/SafeERC20.sol";
-import "openzeppelin-solidity-2.3.0/contracts/utils/ReentrancyGuard.sol";
+import "openzeppelin-solidity-4.9.6/contracts/utils/math/Math.sol";
+import "openzeppelin-solidity-4.9.6/contracts/utils/math/SafeMath.sol";
+import "openzeppelin-solidity-4.9.6/contracts/token/ERC20/IERC20.sol";
+import "openzeppelin-solidity-4.9.6/contracts/token/ERC20/utils/SafeERC20.sol";
+import "openzeppelin-solidity-4.9.6/contracts/security/ReentrancyGuard.sol";
 
 // Inheritance
 import "./interfaces/IStakingRewards.sol";
@@ -16,7 +16,7 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
 
     /* ========== STATE VARIABLES ========== */
 
-    IERC20 public constant stakingToken;
+    IERC20 public stakingToken;
     uint256 public periodFinish = 0;
     uint256 public rewardRate = 0;
     uint256 public rewardsDuration = 7 days;
@@ -31,7 +31,8 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
 
     /* ========== CONSTRUCTOR ========== */
 
-    constructor(address _rewardsDistribution) public {
+    constructor(address _rewardsDistribution, address wring) {
+        stakingToken = IERC20(wring);
         rewardsDistribution = _rewardsDistribution;
     }
 
@@ -90,7 +91,7 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
         uint256 reward = rewards[msg.sender];
         if (reward > 0) {
             rewards[msg.sender] = 0;
-            (bool success,) = msg.sender.call.value(reward)("");
+            (bool success,) = msg.sender.call{value: reward}("");
             require(success, "Transfer failed");
             emit RewardPaid(msg.sender, reward);
         }
@@ -103,7 +104,7 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
 
     /* ========== RESTRICTED FUNCTIONS ========== */
 
-    function notifyRewardAmount() external payable onlyRewardsDistribution updateReward(address(0)) {
+    function notifyRewardAmount() external payable override onlyRewardsDistribution updateReward(address(0)) {
         uint256 reward = msg.value;
         if (block.timestamp >= periodFinish) {
             rewardRate = reward.div(rewardsDuration);
