@@ -27,8 +27,9 @@ contract CollatorStaking {
     event Withdraw(address sender, uint256 assets, uint256 shares);
     event WithdrawNFT(address sender, uint256 assets, uint256 shares);
 
-    constructor(address creator_, address stRING_, address stNFT_) {
+    constructor(address creator_, address nft_, address stRING_, address stNFT_) {
         creator = creator_;
+        nft = nft_;
         stRING = stRING_;
         stNFT = stNFT_;
     }
