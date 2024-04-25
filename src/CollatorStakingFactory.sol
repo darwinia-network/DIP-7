@@ -1,24 +1,50 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
 
-import "openzeppelin-solidity-4.9.6/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts@4.9.6/utils/structs/EnumerableSet.sol";
 import "./CollatorStaking.sol";
 
 contract CollatorStakingFactory {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     EnumerableSet.AddressSet private collators;
-    address public depositNFT;
-    address public distribution;
-    address public wring;
 
+    // deposit NFT;
+    address public nft;
+
+    // creator => collator
     mapping(address => address) public collatorOf;
 
-    function createCollator() public {
+    event NewCollator();
+    event Deposit();
+    event Withdraw();
+
+    constructor() {
+        nft = new StDeposit();
+    }
+
+    function createCollator() public nonreentrant {
         address creator = msg.sender;
         require(collatorOf[user] == address(0));
         STRING stRing = new STRING();
-        CollatorStaking collator = new CollatorStaking(distribution, stRing, depositNFT, wring, creator);
+        STNFT stNFT = new STNFT();
+        CollatorStaking collator = new CollatorStaking(creator, stRING, stNFT);
         require(collators.add(collator));
+        collatorOf[creator] = collator;
+        emit NewCollator();
+    }
+
+    function deposit() external payable nonreentrant {
+        require(msg.value > 0);
+        nft.mint(msg.sender, msg.value);
+
+        emit Deposit();
+    }
+
+    function redeem(uint256 nftId) external nonreentrant {
+        uint256 shares = nft.sharesOf[nftId];
+        nft.burn(nftId);
+        msg.sender.call{value: shares}();
+        emit Withdraw();
     }
 }

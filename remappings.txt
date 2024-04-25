@@ -1,2 +1,2 @@
+@openzeppelin/contracts@4.9.6/=lib/zeppelin-solidity/contracts/
 forge-std/=lib/forge-std/src/
-openzeppelin-solidity-4.9.6/=lib/openzeppelin-contracts/

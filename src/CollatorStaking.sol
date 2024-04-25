@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
 
+// TODO:: how to elect top collators?
 contract CollatorStaking {
     enum Rounding {
         ROUND_DOWN,
         ROUND_UP
     }
+
+    address creator;
 
     // assert nft
     IERC721 nft;
@@ -24,7 +27,11 @@ contract CollatorStaking {
     event Withdraw(address sender, uint256 assets, uint256 shares);
     event WithdrawNFT(address sender, uint256 assets, uint256 shares);
 
-    constructor() {}
+    constructor(address creator_, address stRING_, address stNFT_) {
+        creator = creator_;
+        stRING = stRING_;
+        stNFT = stNFT_;
+    }
 
     receive() payable nonreentrant {
         uint256 assets = msg.value;
