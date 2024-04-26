@@ -16,11 +16,9 @@ contract CollatorStakingFactory {
     mapping(address => address) public collatorOf;
 
     event NewCollator();
-    event Deposit();
-    event Withdraw();
 
-    constructor() {
-        nft = new StDeposit();
+    constructor(address nft_) {
+        nft = nft_;
     }
 
     function createCollator() public nonreentrant {
@@ -32,19 +30,5 @@ contract CollatorStakingFactory {
         require(collators.add(collator));
         collatorOf[creator] = collator;
         emit NewCollator();
-    }
-
-    function deposit() external payable nonreentrant {
-        require(msg.value > 0);
-        nft.mint(msg.sender, msg.value);
-
-        emit Deposit();
-    }
-
-    function redeem(uint256 nftId) external nonreentrant {
-        uint256 shares = nft.sharesOf[nftId];
-        nft.burn(nftId);
-        msg.sender.call{value: shares}();
-        emit Withdraw();
     }
 }
