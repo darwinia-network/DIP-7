@@ -8,28 +8,34 @@ contract CollatorStaking {
         ROUND_UP
     }
 
-    address creator;
+    address public factory;
+    address public jcreator;
 
     // assert nft
-    IERC721 nft;
+    IERC721 public nft;
     // assert ft(ring) + assert nft
-    uint256 totalAssets;
+    uint256 public totalAssets;
 
     // share ft
-    IERC20 stRING;
+    IERC20 public stRING;
     // share nft
-    IERC721 stNFT;
+    IERC721 public stNFT;
     // share ft + share nft
-    uint256 totalShares;
+    uint256 public totalShares;
 
     event Deposit(address recipient, uint256 assets, uint256 shares);
     event DepositNFT(address recipient, uint256 assets, uint256 shares);
     event Withdraw(address sender, uint256 assets, uint256 shares);
     event WithdrawNFT(address sender, uint256 assets, uint256 shares);
 
-    constructor(address creator_, address nft_, address stRING_, address stNFT_) {
+    constructor(address creator_, address nft_) {
+        factory = msg.sender;
         creator = creator_;
         nft = nft_;
+    }
+
+    function initialize(address stRING_, address stNFT_) external {
+        require(msg.sender == factory);
         stRING = stRING_;
         stNFT = stNFT_;
     }

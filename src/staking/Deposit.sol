@@ -4,10 +4,9 @@ pragma solidity 0.8.17;
 import "@openzeppelin/contracts@4.9.6/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts@4.9.6/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts@4.9.6/token/ERC721/extensions/ERC721Burnable.sol";
-import "@openzeppelin/contracts@4.9.6/access/Ownable.sol";
 import "./CollatorStaking.sol";
 
-contract Deposit is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
+contract Deposit is ERC721, ERC721URIStorage, ERC721Burnable {
     uint256 private _nextTokenId;
 
     CollatorStaking collator;
@@ -15,11 +14,7 @@ contract Deposit is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
     // tokenId => shares
     mapping(uint256 => uint256) public sharesOf;
 
-    constructor(address owner, string memory name, string memory symbol)
-        ERC721(name, symbol)
-        Ownable(owner)
-        EIP712(name, "1")
-    {}
+    constructor(string memory name, string memory symbol) ERC721(name, symbol) EIP712(name, "1") {}
 
     function votesOf(uint256 shares) public view virtual returns (uint256) {
         return collator.convertToAssets(shares);
@@ -27,26 +22,26 @@ contract Deposit is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
 
     function deposit() external payable nonreentrant {
         require(msg.value > 0);
-        nft.mint(msg.sender, msg.value);
+        _mint(msg.sender, msg.value);
 
         emit Deposit();
     }
 
     function redeem(uint256 nftId) external nonreentrant {
         uint256 shares = nft.sharesOf[nftId];
-        nft.burn(nftId);
+        _burn(nftId);
         msg.sender.call{value: shares}();
         emit Withdraw();
     }
 
-    function mint(address to, uint256 shares) public onlyOwner {
+    function _mint(address to, uint256 shares) internal {
         uint256 tokenId = _nextTokenId++;
         _safeMint(to, tokenId);
         sharesOf[tokenId] = shares;
     }
 
-    function burn(uint256 tokenId) public override {
-        super.burn(tokenId);
+    function _burn(uint256 tokenId) public override {
+        super._burn(tokenId);
         delete sharesOf[tokenId];
     }
 
