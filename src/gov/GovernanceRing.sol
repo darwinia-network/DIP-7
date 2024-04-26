@@ -13,12 +13,14 @@ contract GovernanceRing is ERC721, ERC721Enumerable, ERC721URIStorage, EIP712, E
 
     address public factory;
 
-    // voter => stToken => uint
-    mapping(address => mapping(address => uint256)) public subSharesOf;
-    // voter => votes
-    mapping(address => uint256) public sharesOf;
-    // nftToken => tokenId => depositor
-    mapping(address => mapping(uint256 => address)) public depositorOf;
+    mapping(address => uint256) public ownedTokenId;
+
+    // tokenId => stToken => votes
+    mapping(uint256 => mapping(address => uint256)) public subVotesOf;
+    // tokenId => votes
+    mapping(uint256 => uint256) public votesOf;
+    // tokenId => depositId => depositor
+    mapping(uint256 => mapping(uint256 => address)) public depositorOf;
 
     constructor(address factory_) ERC721("Darwinia Governance Ring", "gRING") EIP712("Darwinia Governance Ring", "1") {
         factory = factory_;
@@ -27,37 +29,46 @@ contract GovernanceRing is ERC721, ERC721Enumerable, ERC721URIStorage, EIP712, E
     // TODO:: add RING
     function deposit(address token, uint256 amountOrTokenId) external {
         address sender = msg.sender;
+        uint256 tokenId = ownedTokenId[sender];
+        require(tokenId > 0);
+
         require(factory.canVote(token));
         IStToken(token).transferFrom(sender, address(this), amountOrTokenId);
-        uint256 shares = IStToken(token).sharesOf(sender, amountOrTokenId);
-        subSharesOf[sender][token] += shares;
-        sharesOf[sender] += shares;
+        uint256 shares = IStToken(token).votesOf(amountOrTokenId);
+        subVotesOf[tokenId][token] += shares;
+        votesOf[tokenId] += shares;
         if (IStToken(token).isNFT()) {
-            depositorOf[token][amountOrTokenId] = sender;
+            depositorOf[token][amountOrTokenId] = tokenId;
         }
     }
 
     function redeem(address token, uint256 amountOrTokenId) external {
         address sender = msg.sender;
-        require(subSharesOf[sender][token] >= amountOrTokenId);
+        uint256 tokenId = ownedTokenId[sender];
+        require(tokenId > 0);
+
+        require(subSharesOf[tokenId][token] >= amountOrTokenId);
         IStToken(token).transferFrom(address(this), sender, amountOrTokenId);
-        uint256 shares = IStToken(token).sharesOf(sender, amountOrTokenId);
-        subSharesOf[sender][token] -= shares;
-        sharesOf[sender] -= shares;
+        uint256 shares = IStToken(token).votesOf(amountOrTokenId);
+        subSharesOf[tokenId][token] -= shares;
+        votesOf[tokenId] -= shares;
         if (IStToken(token).isNFT()) {
-            delete depositorOf[token][amountOrTokenId];
+            delete depositorOf[tokenId][amountOrTokenId];
         }
     }
 
     function mint() public {
-        address to = msg.sender;
         require(balanceOf(to) == 0);
+        address to = msg.sender;
         uint256 tokenId = _nextTokenId++;
+        require(ownedTokenId[to] != 0);
+        ownedTokenId[to] = tokenId;
         _safeMint(to, tokenId);
     }
 
     function _getVotingUnits(address account) internal view virtual override returns (uint256) {
-        return sharesOf[account];
+        uint256 tokenId = ownedTokenId[account];
+        return votesOf[tokenId];
     }
 
     function _transfer(address, address, uint256) internal override {

@@ -5,9 +5,12 @@ import "@openzeppelin/contracts@4.9.6/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts@4.9.6/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts@4.9.6/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts@4.9.6/access/Ownable.sol";
+import "./CollatorStaking.sol";
 
 contract Deposit is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
     uint256 private _nextTokenId;
+
+    CollatorStaking collator;
 
     // tokenId => shares
     mapping(uint256 => uint256) public sharesOf;
@@ -17,6 +20,10 @@ contract Deposit is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
         Ownable(owner)
         EIP712(name, "1")
     {}
+
+    function votesOf(uint256 shares) public view virtual returns (uint256) {
+        return collator.convertToAssets(shares);
+    }
 
     function deposit() external payable nonreentrant {
         require(msg.value > 0);

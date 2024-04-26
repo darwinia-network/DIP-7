@@ -127,6 +127,10 @@ contract CollatorStaking {
         totalShares -= shares;
     }
 
+    function convertToAssets(uint256 shares) external view returns (uint256) {
+        return _convert_to_assets(shares, Rounding.ROUND_DOWN);
+    }
+
     // assets = shares * (total_assets / total_supply) --- (== price_per_share * shares)
     function _convert_to_assets(uint256 shares, Rounding rounding) internal view returns (uint256) {
         require(shares > 0 && totalShares > 0);
@@ -137,6 +141,10 @@ contract CollatorStaking {
             assets += 1;
         }
         return assets;
+    }
+
+    function convertToShares(uint256 assets) external view returns (uint256) {
+        return _convert_to_shares(assets, Rounding.ROUND_DOWN);
     }
 
     // shares = amount * (total_supply / total_assets) --- (== amount / price_per_share)
