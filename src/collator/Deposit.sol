@@ -9,40 +9,38 @@ import "./CollatorStaking.sol";
 contract Deposit is ERC721, ERC721URIStorage, ERC721Burnable {
     uint256 private _nextTokenId;
 
-    CollatorStaking collator;
+    // tokenId => lockedAssets
+    mapping(uint256 => uint256) public assetsOf;
 
-    // tokenId => shares
-    mapping(uint256 => uint256) public sharesOf;
+    constructor() ERC721("Deposit NFT", "DPS") EIP712("Deposit NFT", "1") {}
 
-    constructor(string memory name, string memory symbol) ERC721(name, symbol) EIP712(name, "1") {}
-
-    function votesOf(uint256 shares) public view virtual returns (uint256) {
-        return collator.convertToAssets(shares);
+    function votesOf(uint256 tokenId) public view virtual returns (uint256) {
+        return assetsOf[tokenId];
     }
 
-    function deposit() external payable nonreentrant {
+    function lock() external payable {
         require(msg.value > 0);
         _mint(msg.sender, msg.value);
 
         emit Deposit();
     }
 
-    function redeem(uint256 nftId) external nonreentrant {
-        uint256 shares = nft.sharesOf[nftId];
+    function unlock(uint256 nftId) external {
+        uint256 assets = assetsOf[nftId];
         _burn(nftId);
-        msg.sender.call{value: shares}();
+        msg.sender.call{value: assets}();
         emit Withdraw();
     }
 
-    function _mint(address to, uint256 shares) internal {
+    function _mint(address to, uint256 assets) internal {
         uint256 tokenId = _nextTokenId++;
         _safeMint(to, tokenId);
-        sharesOf[tokenId] = shares;
+        assetsOf[tokenId] = assets;
     }
 
     function _burn(uint256 tokenId) public override {
         super._burn(tokenId);
-        delete sharesOf[tokenId];
+        delete assetsOf[tokenId];
     }
 
     // The following functions are overrides required by Solidity.

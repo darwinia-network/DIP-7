@@ -2,14 +2,14 @@
 pragma solidity 0.8.17;
 
 // TODO:: how to elect top collators?
-contract CollatorStaking {
+contract CollatorLiquidStaking {
     enum Rounding {
         ROUND_DOWN,
         ROUND_UP
     }
 
     address public factory;
-    address public jcreator;
+    address public creator;
 
     // assert nft
     IERC721 public nft;
@@ -46,7 +46,7 @@ contract CollatorStaking {
         totalAssets += assets;
     }
 
-    function depositFT() external payable nonreentrant {
+    function deposit() external payable nonreentrant {
         uint256 assets = msg.value;
         address recipient = msg.sender;
         require(assets > 0);
@@ -57,7 +57,7 @@ contract CollatorStaking {
 
         require(shares > 0);
 
-        totalPowers += assets;
+        totalAssets += assets;
 
         emit Deposit(recipient, assets, shares);
     }
@@ -88,7 +88,7 @@ contract CollatorStaking {
 
         uint256 shares = _issueSharesForAmount(assets, recipient, true);
 
-        totalPowers += assets;
+        totalAssets += assets;
         emit DepositNFT(recipient, assets, shares);
     }
 
