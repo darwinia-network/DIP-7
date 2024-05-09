@@ -24,15 +24,19 @@ contract CollatorStaking {
         operator = operator_;
     }
 
-    function previewDeposit(uint256 assets) public view virtual override returns (uint256) {
+    function assetsOf(address account) public view returns (uint256) {
+        return _convertToAssets(sharesOf[account]);
+    }
+
+    function previewDeposit(uint256 assets) public view returns (uint256) {
         return _convertToShares(assets, Math.Rounding.Down);
     }
 
-    function previewRedeem(uint256 shares) public view virtual override returns (uint256) {
+    function previewRedeem(uint256 shares) public view returns (uint256) {
         return _convertToAssets(shares, Math.Rounding.Down);
     }
 
-    function stake(uint256 assets, address recipient) external onlyHub returns (uint256) {
+    function deposit(uint256 assets, address recipient) external onlyHub returns (uint256) {
         uint256 shares = previewDeposit(assets);
 
         sharesOf[receiver] = shares;
@@ -42,7 +46,7 @@ contract CollatorStaking {
         return shares;
     }
 
-    function unstake(uint256 shares, address from) external onlyHub returns (uint256) {
+    function redeem(uint256 shares, address from) external onlyHub returns (uint256) {
         uint256 assets = previewRedeem(shares);
 
         sharesOf[from] -= shares;
