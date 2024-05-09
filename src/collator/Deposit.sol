@@ -14,10 +14,6 @@ contract Deposit is ERC721, ERC721URIStorage, ERC721Burnable {
 
     constructor() ERC721("Deposit NFT", "DPS") EIP712("Deposit NFT", "1") {}
 
-    function votesOf(uint256 tokenId) public view virtual returns (uint256) {
-        return assetsOf[tokenId];
-    }
-
     function lock() external payable {
         require(msg.value > 0);
         _mint(msg.sender, msg.value);
