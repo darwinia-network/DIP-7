@@ -79,7 +79,7 @@ contract CollatorStaking {
     }
 
     function _decimalsOffset() internal view returns (uint8) {
-        return 8;
+        return 0;
     }
 
     function decimals() public view returns (uint8) {
