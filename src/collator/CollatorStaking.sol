@@ -43,6 +43,7 @@ contract CollatorStaking {
         totalShares += shares;
         emit Deposit(receiver, assets, shares);
 
+        // _mint(receiver, shares);
         return shares;
     }
 
@@ -53,6 +54,7 @@ contract CollatorStaking {
         totalShares -= shares;
         emit Withdraw(from, assets, shares);
 
+        // _burn(from, shares);
         return assets;
     }
 
