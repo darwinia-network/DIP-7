@@ -23,6 +23,14 @@ contract GovernanceRing is ERC20, ERC20Permit, ERC20Votes, Ownable2Step {
         _;
     }
 
+    function _transfer(address, address, uint256) internal pure override {
+        revert();
+    }
+
+    function _approve(address, address, uint256) internal pure override {
+        revert();
+    }
+
     function sync(address collator, address account) external onlyHub {
         _sync(collator, account);
     }
