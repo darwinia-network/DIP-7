@@ -29,7 +29,7 @@ contract CollatorStakingHub {
     mapping(uint256 => DepositInfo) public depositOf;
 
     function _reOrder() internal {
-        collators.DescByTotalAssets();
+        collators.DescByTotalSupply();
     }
 
     function createCollator() public {
