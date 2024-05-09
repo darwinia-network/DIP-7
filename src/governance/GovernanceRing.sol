@@ -23,31 +23,12 @@ contract GovernanceRing is ERC20, ERC20Permit, ERC20Votes, Ownable2Step {
         _;
     }
 
-    function _transfer(address, address, uint256) internal pure override {
-        revert();
+    function mint(address account, address amount) external onlyHub {
+        _mint(account, amount);
     }
 
-    function _approve(address, address, uint256) internal pure override {
-        revert();
-    }
-
-    function sync(address collator, address account) external onlyHub {
-        _sync(collator, account);
-    }
-
-    function _sync(address collator, address account) internal {
-        uint256 assets = collator.assetsOf(account);
-        uint256 amount = mintedMap[collator][account];
-
-        if (amount < assets) {
-            uint256 needMint = assets - amount;
-            mintedMap[collator][account] = assets;
-            _mint(account, needMint);
-        } else if (amount > assets) {
-            uint256 needBurn = amount - assets;
-            mintedMap[collator][account] = assets;
-            _burn(account, needBurn);
-        }
+    function burn(address account, address amount) external onlyHub {
+        _burn(account, amount);
     }
 
     function wrap() public payable {

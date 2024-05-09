@@ -3,9 +3,9 @@ pragma solidity 0.8.17;
 
 contract CollatorStakingHub {
     // Deposit NFT.
-    address public nft;
+    address nft;
 
-    address public stakingPallet;
+    address stakingPallet;
 
     address public gRING;
 
@@ -22,19 +22,19 @@ contract CollatorStakingHub {
 
     struct DepositInfo {
         address usr;
-        uint256 shares;
+        uint256 assets;
         address collator;
     }
 
     mapping(uint256 => DepositInfo) public depositOf;
 
     function _reOrder() internal {
-        collators.DescByTotalAssets();
+        collators.DescByTotalSupply();
     }
 
     function createCollator() public {
         address operator = msg.sender;
-        CollatorStaking collator = new CollatorStaking(operator);
+        CollatorStaking collator = new CollatorStaking(operator, wring);
         require(collators.add(collator));
         collatorOf[operator] = collator;
         _reOrder();
@@ -43,18 +43,24 @@ contract CollatorStakingHub {
     function stake(address operator) public payable {
         address usr = msg.sender;
         CollatorStaking collator = collatorOf[operator];
-        collator.deposit(msg.value, usr);
-        gRING.sync(collator, usr);
+        collator.stake(msg.value, usr);
+        gRING.mint(usr, msg.value);
         _reOrder();
     }
 
-    function unstake(uint256 shares, address operator) public {
+    function unstake(uint256 amount, address operator) public {
         address usr = msg.sender;
         CollatorStaking collator = collatorOf[operator];
-        uint256 assets = collator.redeem(shares, usr);
-        usr.transfer(assets);
-        gRING.sync(collator, usr);
+        collator.withdraw(amount, usr);
+        usr.transfer(amount);
+        gRING.burn(usr, amount);
         _reOrder();
+    }
+
+    function claim(address operator) public {
+        address usr = msg.sender;
+        CollatorStaking collator = collatorOf[operator];
+        collator.getReward(usr);
     }
 
     function stakeNFT(uint256 depositId, address operator) public {
@@ -62,9 +68,9 @@ contract CollatorStakingHub {
         nft.transferFrom(usr, address(this), depositId);
         uint256 assets = nft.assetsOf(depositId);
         CollatorStaking collator = collatorOf[operator];
-        uint256 shares = collator.deposit(assets, usr);
-        depositOf[depositId] = DepositInfo(usr, shares, collator);
-        gRING.sync(collator, usr);
+        collator.stake(assets, usr);
+        depositOf[depositId] = DepositInfo(usr, assets, collator);
+        gRING.mint(usr, assets);
         _reOrder();
     }
 
@@ -72,11 +78,9 @@ contract CollatorStakingHub {
         address usr = msg.sender;
         DepositInfo memory info = depositOf[depositId];
         require(info.usr == usr);
-        uint256 assets = info.collator.redeem(info.shares, usr);
-        uint256 assetsNFT = nft.assetsOf(depositId);
+        info.collator.withdraw(info.assets, usr);
         nft.transferFrom(address(this), usr, depositId);
-        usr.transfer(assets - assetsNFT);
-        gRING.sync(collator, usr);
+        gRING.burn(usr, info.assets);
         _reOrder();
     }
 
@@ -96,18 +100,12 @@ contract CollatorStakingHub {
         uint256 commission_ = rewards * commissionOf[collator] / COMMISSION_BASE;
         address operator = collator.operator();
         operator.transfer(commission_);
-        collator.distributeReward(rewards - commission_);
+        collator.notifyRewardAmount{value: rewards - commission_}();
     }
 
     function collect(uint256 commission, address collator) public {
         require(commission <= COMMISSION_BASE);
         require(msg.sender == collator.operator());
         commissionOf[collator] = commission;
-    }
-
-    function syncGovToken(address operator, address account) public {
-        address collator = collatorOf[operator];
-        require(collator != address(0));
-        gRING.sync(collator, usr);
     }
 }
