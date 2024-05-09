@@ -104,4 +104,10 @@ contract CollatorStakingHub {
         require(msg.sender == collator.operator());
         commissionOf[collator] = commission;
     }
+
+    function syncGovToken(address operator, address account) public {
+        address collator = collatorOf[operator];
+        require(collator != address(0));
+        gRING.sync(collator, usr);
+    }
 }
