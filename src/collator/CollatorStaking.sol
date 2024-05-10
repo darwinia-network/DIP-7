@@ -1,21 +1,15 @@
 pragma solidity ^0.5.16;
 
-import "openzeppelin-solidity-2.3.0/contracts/math/Math.sol";
-import "openzeppelin-solidity-2.3.0/contracts/math/SafeMath.sol";
-import "openzeppelin-solidity-2.3.0/contracts/token/ERC20/ERC20Detailed.sol";
-import "openzeppelin-solidity-2.3.0/contracts/token/ERC20/SafeERC20.sol";
-import "openzeppelin-solidity-2.3.0/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts@5.0.2/contracts/math/Math.sol";
+import "@openzeppelin/contracts@5.0.2/contracts/utils/ReentrancyGuard.sol";
 
 // Inheritance
 import "./interfaces/IStakingRewards.sol";
-import "./RewardsDistributionRecipient.sol";
 
-contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, ReentrancyGuard {
-    using SafeMath for uint256;
-    using SafeERC20 for IERC20;
-
+contract StakingRewards is IStakingRewards, ReentrancyGuard {
     /* ========== STATE VARIABLES ========== */
 
+    address public hub;
     address public operator;
     uint256 public periodFinish = 0;
     uint256 public rewardRate = 0;
@@ -29,10 +23,15 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
     uint256 private _totalSupply;
     mapping(address => uint256) private _balances;
 
+    modifier onlyHub() {
+        require(msg.sender == hub);
+        _;
+    }
+
     /* ========== CONSTRUCTOR ========== */
 
-    constructor(address operator_, address wring) public {
-        rewardsDistribution = msg.sender;
+    constructor(address operator_) public {
+        hub = msg.sender;
         operator = operator_;
     }
 
@@ -54,48 +53,40 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
         if (_totalSupply == 0) {
             return rewardPerTokenStored;
         }
-        return rewardPerTokenStored.add(
-            lastTimeRewardApplicable().sub(lastUpdateTime).mul(rewardRate).mul(1e18).div(_totalSupply)
-        );
+        return rewardPerTokenStored + (lastTimeRewardApplicable() - lastUpdateTime) * rewardRate * 1e18 / _totalSupply;
+        // return rewardPerTokenStored.add(
+        //     lastTimeRewardApplicable().sub(lastUpdateTime).mul(rewardRate).mul(1e18).div(_totalSupply)
+        // );
     }
 
     function earned(address account) public view returns (uint256) {
-        return _balances[account].mul(rewardPerToken().sub(userRewardPerTokenPaid[account])).div(1e18).add(
-            rewards[account]
-        );
+        return _balances[account] * (rewardPerToken() - userRewardPerTokenPaid[account]) / 1e18 + rewards[account];
+        // return _balances[account].mul(rewardPerToken().sub(userRewardPerTokenPaid[account])).div(1e18).add(
+        //     rewards[account]
+        // );
     }
 
     function getRewardForDuration() external view returns (uint256) {
-        return rewardRate.mul(rewardsDuration);
+        return rewardRate * rewardsDuration;
     }
 
     /* ========== MUTATIVE FUNCTIONS ========== */
 
-    function stake(uint256 amount, address account)
-        external
-        onlyRewardsDistribution
-        nonReentrant
-        updateReward(account)
-    {
+    function stake(uint256 amount, address account) external onlyHub nonReentrant updateReward(account) {
         require(amount > 0, "Cannot stake 0");
-        _totalSupply = _totalSupply.add(amount);
-        _balances[account] = _balances[account].add(amount);
-        emit Staked(msg.sender, amount);
+        _totalSupply = _totalSupply + amount;
+        _balances[account] = _balances[account] + amount;
+        emit Staked(account, amount);
     }
 
-    function withdraw(uint256 amount, address account)
-        public
-        onlyRewardsDistribution
-        nonReentrant
-        updateReward(account)
-    {
+    function withdraw(uint256 amount, address account) public onlyHub nonReentrant updateReward(account) {
         require(amount > 0, "Cannot withdraw 0");
-        _totalSupply = _totalSupply.sub(amount);
-        _balances[account] = _balances[account].sub(amount);
+        _totalSupply = _totalSupply - amount;
+        _balances[account] = _balances[account] - amount;
         emit Withdrawn(account, amount);
     }
 
-    function getReward(address account) public nonReentrant onlyRewardsDistribution updateReward(account) {
+    function getReward(address account) public nonReentrant onlyHub updateReward(account) {
         uint256 reward = rewards[account];
         if (reward > 0) {
             rewards[account] = 0;
@@ -105,21 +96,16 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
         }
     }
 
-    function exit() external {
-        withdraw(_balances[msg.sender]);
-        getReward();
-    }
-
     /* ========== RESTRICTED FUNCTIONS ========== */
 
-    function notifyRewardAmount() external payable onlyRewardsDistribution updateReward(address(0)) {
+    function notifyRewardAmount() external payable onlyHub updateReward(address(0)) {
         uint256 reward = msg.value;
         if (block.timestamp >= periodFinish) {
-            rewardRate = reward.div(rewardsDuration);
+            rewardRate = reward / rewardsDuration;
         } else {
-            uint256 remaining = periodFinish.sub(block.timestamp);
-            uint256 leftover = remaining.mul(rewardRate);
-            rewardRate = reward.add(leftover).div(rewardsDuration);
+            uint256 remaining = periodFinish - block.timestamp;
+            uint256 leftover = remaining * rewardRate;
+            rewardRate = (reward + leftover) / rewardsDuration;
         }
 
         // Ensure the provided reward amount is not more than the balance in the contract.
@@ -127,10 +113,10 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
         // very high values of rewardRate in the earned and rewardsPerToken functions;
         // Reward + leftover must be less than 2^256 / 10^18 to avoid overflow.
         uint256 balance = address(this).balance;
-        require(rewardRate <= balance.div(rewardsDuration), "Provided reward too high");
+        require(rewardRate <= balance / rewardsDuration, "Provided reward too high");
 
         lastUpdateTime = block.timestamp;
-        periodFinish = block.timestamp.add(rewardsDuration);
+        periodFinish = block.timestamp + rewardsDuration;
         emit RewardAdded(reward);
     }
 
