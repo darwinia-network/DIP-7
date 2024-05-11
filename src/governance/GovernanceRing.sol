@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-import "@openzeppelin/contracts/access/Ownable2Step.sol";
+import "@openzeppelin/contracts@5.0.2/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts@5.0.2/token/ERC20/extensions/ERC20Permit.sol";
+import "@openzeppelin/contracts@5.0.2/token/ERC20/extensions/ERC20Votes.sol";
+import "@openzeppelin/contracts@5.0.2/access/Ownable2Step.sol";
 
 contract GovernanceRing is ERC20, ERC20Permit, ERC20Votes, Ownable2Step {
     constructor(address dao) ERC20("Governance Ring", "gRING") ERC20Permit("Governance Ring") Ownable2Step(dao) {}
@@ -15,20 +15,12 @@ contract GovernanceRing is ERC20, ERC20Permit, ERC20Votes, Ownable2Step {
     // depositId => depositor
     mapping(uint256 => address) public depositorOf;
 
-    // collator => account => balance
-    mapping(address => mapping(address => uint256)) public mintedMap;
+    // depositor => cring => amount
+    mapping(address => mapping(address => uint256)) public amountOf;
 
-    modifier onlyHub() {
-        require(msg.sender == hub);
+    modifier onlyCRING(address token) {
+        require(hub.exist(token));
         _;
-    }
-
-    function mint(address account, address amount) external onlyHub {
-        _mint(account, amount);
-    }
-
-    function burn(address account, address amount) external onlyHub {
-        _burn(account, amount);
     }
 
     function wrap() public payable {
@@ -38,6 +30,18 @@ contract GovernanceRing is ERC20, ERC20Permit, ERC20Votes, Ownable2Step {
     function unwrap(uint256 amount) public {
         _burn(msg.sender, amount);
         msg.sender.transfer(amount);
+    }
+
+    function wrap(address cring, uint256 amount) external onlyCRING(cring) {
+        cring.transferFrom(msg.sender, address(this), amount);
+        _mint(msg.sender, amount);
+        amountOf[msg.sender][cring] += amount;
+    }
+
+    function unwrap(address cring, uint256 amount) external onlyCRING(cring) {
+        _burn(msg.sender, amount);
+        amountOf[msg.sender][cring] -= amount;
+        cring.transferFrom(address(this), msg.sender, amount);
     }
 
     function wrapNFT(uint256 depositId) public {

@@ -17,6 +17,10 @@ contract CollatorSet {
         collators[HEAD] = type(uint256).max;
     }
 
+    function exist(address c) public view returns (bool) {
+        return collators[c] != address(0) && c != HEAD;
+    }
+
     function getTopCollators(uint256 k) public view returns (address[] memory) {
         address[] memory topCollators = new address[](k);
         uint256 len = count;
@@ -71,6 +75,7 @@ contract CollatorSet {
         }
     }
 
+    // prev >= cur >= next
     function _verifyIndex(address prev, uint256 newValue, address next) internal view returns (bool) {
         return fundOf[prev] >= newValue && newValue >= fundOf[next];
     }
