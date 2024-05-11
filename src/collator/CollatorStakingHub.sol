@@ -21,7 +21,10 @@ contract CollatorStakingHub is CollatorSet {
         address collator;
     }
 
+    // depositId => depositInfo
     mapping(uint256 => DepositInfo) public depositOf;
+    // depositor => staked ring
+    mapping(address => uint256) public stakedOf;
 
     uint256 private constant COMMISSION_BASE = 10_000;
 
@@ -40,8 +43,8 @@ contract CollatorStakingHub is CollatorSet {
         uint256 amount = msg.value;
         CollatorStaking collator = collatorOf[operator];
         collator.stake(account, amount);
-        // gRING.mint(usr, msg.value);
         _increaseFund(collator, amount, oldPrev, newPrev);
+        stakedOf[account] += amount;
     }
 
     function unstake(address operator, uint256 amount, address oldPrev, address newPrev) public {
@@ -49,8 +52,8 @@ contract CollatorStakingHub is CollatorSet {
         CollatorStaking collator = collatorOf[operator];
         collator.withdraw(usr, amount);
         usr.transfer(amount);
-        // gRING.burn(usr, amount);
         _reduceFund(collator, amount, oldPrev, newPrev);
+        stakedOf[account] -= amount;
     }
 
     function claim(address operator) public {
@@ -66,7 +69,6 @@ contract CollatorStakingHub is CollatorSet {
         CollatorStaking collator = collatorOf[operator];
         collator.stake(usr, assets);
         depositOf[depositId] = DepositInfo(usr, assets, collator);
-        // gRING.mint(usr, assets);
         _increaseFund(collator, amount, oldPrev, newPrev);
     }
 
@@ -76,7 +78,6 @@ contract CollatorStakingHub is CollatorSet {
         require(info.usr == usr);
         info.collator.withdraw(usr, info.assets);
         nft.transferFrom(address(this), usr, depositId);
-        // gRING.burn(usr, info.assets);
         _reduceFund(collator, amount, oldPrev, newPrev);
     }
 
