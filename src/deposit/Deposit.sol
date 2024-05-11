@@ -64,10 +64,6 @@ contract Deposit is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Burnable {
         return depositOf[id].value;
     }
 
-    function getDeposit(uint256 id) public view returns (uint48, uint48, uint128) {
-        return (depositOf[id].months, depositOf[id].startAt, depositOf[id].value);
-    }
-
     function _deposit(address account, uint256 value, uint48 months) internal returns (uint256) {
         require(value > 0 && value < type(uint128).max);
         require(months <= 36 && months >= 1);

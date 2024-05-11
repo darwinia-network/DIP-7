@@ -1,22 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
 
-contract CollatorStakingHub {
+import "./CollatorSet.sol";
+
+contract CollatorStakingHub is CollatorSet {
     // Deposit NFT.
-    address nft;
+    address public nft;
 
-    address stakingPallet;
+    address public stakingPallet;
 
-    // ordered collators.
-    address[] public collators;
-
-    // collator operator => collator
+    // operator => collator
     mapping(address => address) public collatorOf;
 
-    uint256 private constant COMMISSION_BASE = 10_000;
-
     // collator => commission
-    mapping(address => uint256) commissionOf;
+    mapping(address => uint256) public commissionOf;
 
     struct DepositInfo {
         address usr;
@@ -26,33 +23,34 @@ contract CollatorStakingHub {
 
     mapping(uint256 => DepositInfo) public depositOf;
 
-    function _reOrder() internal {
-        collators.DescByTotalSupply();
-    }
+    uint256 private constant COMMISSION_BASE = 10_000;
 
-    function createCollator() public {
+    constructor() CollatorSet() {}
+
+    function createCollator(address prev, uint256 commission) public {
         address operator = msg.sender;
-        CollatorStaking collator = new CollatorStaking(operator);
-        require(collators.add(collator));
+        require(collatorOf[operator] == address(0));
+        CollatorStaking cur = new CollatorStaking(operator);
         collatorOf[operator] = collator;
-        _reOrder();
+        _addCollator(collator, 0, prev);
     }
 
-    function stake(address operator) public payable {
-        address usr = msg.sender;
+    function stake(address operator, address oldPrev, address newPrev) public payable {
+        address account = msg.sender;
+        uint256 amount = msg.value;
         CollatorStaking collator = collatorOf[operator];
-        collator.stake(usr, msg.value);
-        gRING.mint(usr, msg.value);
-        _reOrder();
+        collator.stake(account, amount);
+        // gRING.mint(usr, msg.value);
+        _increaseFund(collator, amount, oldPrev, newPrev);
     }
 
-    function unstake(uint256 amount, address operator) public {
+    function unstake(address operator, uint256 amount, address oldPrev, address newPrev) public {
         address usr = msg.sender;
         CollatorStaking collator = collatorOf[operator];
         collator.withdraw(usr, amount);
         usr.transfer(amount);
-        gRING.burn(usr, amount);
-        _reOrder();
+        // gRING.burn(usr, amount);
+        _reduceFund(collator, amount, oldPrev, newPrev);
     }
 
     function claim(address operator) public {
@@ -61,35 +59,25 @@ contract CollatorStakingHub {
         collator.getReward(usr);
     }
 
-    function stakeNFT(uint256 depositId, address operator) public {
+    function stakeNFT(address operator, uint256 depositId, address oldPrev, address newPrev) public {
         address usr = msg.sender;
         nft.transferFrom(usr, address(this), depositId);
         uint256 assets = nft.assetsOf(depositId);
         CollatorStaking collator = collatorOf[operator];
         collator.stake(usr, assets);
         depositOf[depositId] = DepositInfo(usr, assets, collator);
-        gRING.mint(usr, assets);
-        _reOrder();
+        // gRING.mint(usr, assets);
+        _increaseFund(collator, amount, oldPrev, newPrev);
     }
 
-    function unstakeNFT(uint256 depositId) public {
+    function unstakeNFT(uint256 depositId, address oldPrev, address newPrev) public {
         address usr = msg.sender;
         DepositInfo memory info = depositOf[depositId];
         require(info.usr == usr);
         info.collator.withdraw(usr, info.assets);
         nft.transferFrom(address(this), usr, depositId);
-        gRING.burn(usr, info.assets);
-        _reOrder();
-    }
-
-    function getTopCollators(uint256 count) public view returns (address[] memory) {
-        address[] memory topCollators = new address[](count);
-        uint256 len = collators.length;
-        if (len > count) len = count;
-        for (uint256 i = 0; i < count; i++) {
-            topCollators = collators[i];
-        }
-        return topCollators;
+        // gRING.burn(usr, info.assets);
+        _reduceFund(collator, amount, oldPrev, newPrev);
     }
 
     function distributeReward(address collator) public payable {
@@ -101,9 +89,13 @@ contract CollatorStakingHub {
         collator.notifyRewardAmount{value: rewards - commission_}();
     }
 
-    function collect(uint256 commission, address collator) public {
+    function collect(uint256 commission) public {
+        CollatorStaking collator = collatorOf[msg.sender];
+        _collect(collator, commission);
+    }
+
+    function _collect(address collator, uint256 commission) internal {
         require(commission <= COMMISSION_BASE);
-        require(msg.sender == collator.operator());
         commissionOf[collator] = commission;
     }
 }
