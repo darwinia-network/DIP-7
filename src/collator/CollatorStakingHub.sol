@@ -7,8 +7,6 @@ contract CollatorStakingHub {
 
     address stakingPallet;
 
-    address public gRING;
-
     // ordered collators.
     address[] public collators;
 
@@ -34,7 +32,7 @@ contract CollatorStakingHub {
 
     function createCollator() public {
         address operator = msg.sender;
-        CollatorStaking collator = new CollatorStaking(operator, wring);
+        CollatorStaking collator = new CollatorStaking(operator);
         require(collators.add(collator));
         collatorOf[operator] = collator;
         _reOrder();
@@ -43,7 +41,7 @@ contract CollatorStakingHub {
     function stake(address operator) public payable {
         address usr = msg.sender;
         CollatorStaking collator = collatorOf[operator];
-        collator.stake(msg.value, usr);
+        collator.stake(usr, msg.value);
         gRING.mint(usr, msg.value);
         _reOrder();
     }
@@ -51,7 +49,7 @@ contract CollatorStakingHub {
     function unstake(uint256 amount, address operator) public {
         address usr = msg.sender;
         CollatorStaking collator = collatorOf[operator];
-        collator.withdraw(amount, usr);
+        collator.withdraw(usr, amount);
         usr.transfer(amount);
         gRING.burn(usr, amount);
         _reOrder();
@@ -68,7 +66,7 @@ contract CollatorStakingHub {
         nft.transferFrom(usr, address(this), depositId);
         uint256 assets = nft.assetsOf(depositId);
         CollatorStaking collator = collatorOf[operator];
-        collator.stake(assets, usr);
+        collator.stake(usr, assets);
         depositOf[depositId] = DepositInfo(usr, assets, collator);
         gRING.mint(usr, assets);
         _reOrder();
@@ -78,7 +76,7 @@ contract CollatorStakingHub {
         address usr = msg.sender;
         DepositInfo memory info = depositOf[depositId];
         require(info.usr == usr);
-        info.collator.withdraw(info.assets, usr);
+        info.collator.withdraw(usr, info.assets);
         nft.transferFrom(address(this), usr, depositId);
         gRING.burn(usr, info.assets);
         _reOrder();

@@ -1,12 +1,14 @@
-pragma solidity ^0.5.16;
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts@5.0.2/contracts/math/Math.sol";
 import "@openzeppelin/contracts@5.0.2/contracts/utils/ReentrancyGuard.sol";
 
 // Inheritance
 import "./interfaces/IStakingRewards.sol";
+import "./CRING.sol";
 
-contract StakingRewards is IStakingRewards, ReentrancyGuard {
+contract CollatorStaking is IStakingRewards, CRING, ReentrancyGuard {
     /* ========== STATE VARIABLES ========== */
 
     address public hub;
@@ -20,9 +22,6 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard {
     mapping(address => uint256) public userRewardPerTokenPaid;
     mapping(address => uint256) public rewards;
 
-    uint256 private _totalSupply;
-    mapping(address => uint256) private _balances;
-
     modifier onlyHub() {
         require(msg.sender == hub);
         _;
@@ -30,37 +29,29 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard {
 
     /* ========== CONSTRUCTOR ========== */
 
-    constructor(address operator_) public {
+    constructor(address operator_, string memory name, string memory symbol) CRING(name, symbol) {
         hub = msg.sender;
         operator = operator_;
     }
 
     /* ========== VIEWS ========== */
 
-    function totalSupply() external view returns (uint256) {
-        return _totalSupply;
-    }
-
-    function balanceOf(address account) external view returns (uint256) {
-        return _balances[account];
-    }
-
     function lastTimeRewardApplicable() public view returns (uint256) {
         return Math.min(block.timestamp, periodFinish);
     }
 
     function rewardPerToken() public view returns (uint256) {
-        if (_totalSupply == 0) {
+        if (totalSupply() == 0) {
             return rewardPerTokenStored;
         }
-        return rewardPerTokenStored + (lastTimeRewardApplicable() - lastUpdateTime) * rewardRate * 1e18 / _totalSupply;
+        return rewardPerTokenStored + (lastTimeRewardApplicable() - lastUpdateTime) * rewardRate * 1e18 / totalSupply();
         // return rewardPerTokenStored.add(
         //     lastTimeRewardApplicable().sub(lastUpdateTime).mul(rewardRate).mul(1e18).div(_totalSupply)
         // );
     }
 
     function earned(address account) public view returns (uint256) {
-        return _balances[account] * (rewardPerToken() - userRewardPerTokenPaid[account]) / 1e18 + rewards[account];
+        return balanceOf(account) * (rewardPerToken() - userRewardPerTokenPaid[account]) / 1e18 + rewards[account];
         // return _balances[account].mul(rewardPerToken().sub(userRewardPerTokenPaid[account])).div(1e18).add(
         //     rewards[account]
         // );
@@ -72,17 +63,15 @@ contract StakingRewards is IStakingRewards, ReentrancyGuard {
 
     /* ========== MUTATIVE FUNCTIONS ========== */
 
-    function stake(uint256 amount, address account) external onlyHub nonReentrant updateReward(account) {
-        require(amount > 0, "Cannot stake 0");
-        _totalSupply = _totalSupply + amount;
-        _balances[account] = _balances[account] + amount;
-        emit Staked(account, amount);
+    function stake(address account, uint256 value) external onlyHub nonReentrant updateReward(account) {
+        require(value > 0, "Cannot stake 0");
+        _mint(account, value);
+        emit Staked(account, value);
     }
 
-    function withdraw(uint256 amount, address account) public onlyHub nonReentrant updateReward(account) {
-        require(amount > 0, "Cannot withdraw 0");
-        _totalSupply = _totalSupply - amount;
-        _balances[account] = _balances[account] - amount;
+    function withdraw(address account, uint256 value) public onlyHub nonReentrant updateReward(account) {
+        require(value > 0, "Cannot withdraw 0");
+        _burn(account, value);
         emit Withdrawn(account, amount);
     }
 
