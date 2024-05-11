@@ -58,6 +58,18 @@ contract GovernanceRing is ERC20, ERC20Permit, ERC20Votes, Ownable2Step {
         fnt.transferFrom(address(this), msg.sender, depositId);
     }
 
+    function transfer(address to, uint256 value) public override returns (bool) {
+        revert();
+    }
+
+    function transferFrom(address from, address to, uint256 value) public override returns (bool) {
+        revert();
+    }
+
+    function approve(address spender, uint256 value) public virtual returns (bool) {
+        revert();
+    }
+
     function clock() public view override returns (uint48) {
         return uint48(block.timestamp);
     }
