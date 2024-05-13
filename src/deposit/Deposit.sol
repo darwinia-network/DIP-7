@@ -1,14 +1,18 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
+import "@openzeppelin/contracts@5.0.2/utils/Address.sol";
+import "@openzeppelin/contracts@5.0.2/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts@5.0.2/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts@5.0.2/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts@5.0.2/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts@5.0.2/token/ERC721/extensions/ERC721Burnable.sol";
-import "./CollatorStaking.sol";
+import "@openzeppelin/contracts@5.0.2/utils/cryptography/EIP712.sol";
 
 contract Deposit is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Burnable {
-    struct Deposit {
+    using Address for address payable;
+
+    struct DepositInfo {
         uint48 months;
         uint48 startAt;
         uint128 value;
@@ -17,7 +21,7 @@ contract Deposit is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Burnable {
     address public depositPallet;
 
     uint256 public depositCount;
-    mapping(uint256 => Deposit) public depositOf;
+    mapping(uint256 => DepositInfo) public depositOf;
 
     uint256 public constant MONTH = 30 days;
     IERC20 public constant KTON = IERC20(0x0000000000000000000000000000000000000402);
@@ -69,7 +73,7 @@ contract Deposit is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Burnable {
         require(months <= 36 && months >= 1);
 
         uint256 id = depositCount++;
-        depositOf[id] = Deposit({months: months, startAt: uint48(block.timestamp), value: uint128(value)});
+        depositOf[id] = DepositInfo({months: months, startAt: uint48(block.timestamp), value: uint128(value)});
 
         uint256 interest = computeInterest(value, months);
         KTON.mint(account, interest);
@@ -102,13 +106,12 @@ contract Deposit is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Burnable {
     function computePenalty(uint256 id) public view returns (uint256) {
         require(isClaimRequirePenalty(id), "Claim do not need Penalty.");
 
-        Deposit memory deposit = depositOf[id];
+        DepositInfo memory info = depositOf[id];
 
-        uint256 monthsDuration = (block.timestamp - deposit.startAt) / MONTH;
+        uint256 monthsDuration = (block.timestamp - info.startAt) / MONTH;
 
         // TODO:
-        uint256 penalty =
-            3 * (computeInterest(deposit.value, deposit.months) - computeInterest(deposit.value, monthsDuration));
+        uint256 penalty = 3 * (computeInterest(info.value, info.months) - computeInterest(info.value, monthsDuration));
 
         return penalty;
     }
@@ -116,17 +119,17 @@ contract Deposit is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Burnable {
     function _claim(address account, uint256 id, bool isPenalty, uint256 penaltyAmount) internal {
         require(_requireOwned(id));
 
-        Deposit memory deposit = depositOf[id];
+        DepositInfo memory info = depositOf[id];
 
         if (isPenalty) {
-            require(block.timestamp - deposit.startAt < deposit.months * MONTH);
+            require(block.timestamp - info.startAt < info.months * MONTH);
         } else {
-            require(block.timestamp - deposit.startAt >= deposit.months * MONTH);
+            require(block.timestamp - info.startAt >= info.months * MONTH);
         }
 
-        account.transfer(deposit.value);
+        payable(account).sendValue(info.value);
 
-        emit ClaimedDeposit(id, account, deposit.value, isPenalty, penaltyAmount);
+        emit ClaimedDeposit(id, account, info.value, isPenalty, penaltyAmount);
 
         _burn(id);
         delete depositOf[id];

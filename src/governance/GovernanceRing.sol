@@ -1,18 +1,19 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts@5.0.2/utils/Address.sol";
 import "@openzeppelin/contracts@5.0.2/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts@5.0.2/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts@5.0.2/token/ERC20/extensions/ERC20Permit.sol";
 import "@openzeppelin/contracts@5.0.2/token/ERC20/extensions/ERC20Votes.sol";
+import "@openzeppelin/contracts@5.0.2/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts@5.0.2/access/Ownable2Step.sol";
 
 contract GovernanceRing is ERC20, ERC20Permit, ERC20Votes, Ownable2Step {
     using Address for address;
     using EnumerableSet for EnumerableSet.UintSet;
 
-    constructor(address dao) ERC20("Governance Ring", "gRING") ERC20Permit("Governance Ring") Ownable2Step(dao) {}
+    constructor(address dao) ERC20("Governance Ring", "gRING") ERC20Permit("Governance Ring") Ownable(dao) {}
 
     address public hub;
     // Deposit NFT.
@@ -105,7 +106,7 @@ contract GovernanceRing is ERC20, ERC20Permit, ERC20Votes, Ownable2Step {
         revert();
     }
 
-    function approve(address spender, uint256 value) public virtual returns (bool) {
+    function approve(address spender, uint256 value) public override returns (bool) {
         revert();
     }
 

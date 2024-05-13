@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
-import "@openzeppelin/contracts@4.9.6/governance/Governor.sol";
-import "@openzeppelin/contracts@4.9.6/governance/extensions/GovernorSettings.sol";
-import "@openzeppelin/contracts@4.9.6/governance/extensions/GovernorCountingSimple.sol";
-import "@openzeppelin/contracts@4.9.6/governance/extensions/GovernorVotes.sol";
-import "@openzeppelin/contracts@4.9.6/governance/extensions/GovernorVotesQuorumFraction.sol";
-import "@openzeppelin/contracts@4.9.6/governance/extensions/GovernorTimelockControl.sol";
+import "@openzeppelin/contracts@5.0.2/governance/Governor.sol";
+import "@openzeppelin/contracts@5.0.2/governance/extensions/GovernorSettings.sol";
+import "@openzeppelin/contracts@5.0.2/governance/extensions/GovernorCountingSimple.sol";
+import "@openzeppelin/contracts@5.0.2/governance/extensions/GovernorVotes.sol";
+import "@openzeppelin/contracts@5.0.2/governance/extensions/GovernorVotesQuorumFraction.sol";
+import "@openzeppelin/contracts@5.0.2/governance/extensions/GovernorTimelockControl.sol";
 
 contract RingDAO is
     Governor,

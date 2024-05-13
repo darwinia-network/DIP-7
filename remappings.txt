@@ -1,2 +1,2 @@
-@openzeppelin/contracts@5.0.2/=lib/zeppelin-solidity/contracts/
+@openzeppelin/contracts@5.0.2/=lib/openzeppelin-contracts/contracts/
 forge-std/=lib/forge-std/src/

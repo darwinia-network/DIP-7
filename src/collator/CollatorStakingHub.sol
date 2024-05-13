@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts@5.0.2/utils/Strings.sol";
 import "@openzeppelin/contracts@5.0.2/utils/Address.sol";
@@ -14,7 +14,7 @@ import "./CollatorSet.sol";
 //   2. change collator operator.
 contract CollatorStakingHub is CollatorSet {
     using Strings for uint256;
-    using Address for address;
+    using Address for address payable;
     using EnumerableSet for EnumerableSet.UintSet;
 
     // operator => collator
@@ -92,7 +92,7 @@ contract CollatorStakingHub is CollatorSet {
         require(exist(collator));
         address account = msg.sender;
         ICollatorStaking(collator).withdraw(account, assets);
-        account.sendValue(assets);
+        payable(account).sendValue(assets);
         _reduceAssets(collator, assets, oldPrev, newPrev);
         require(stakedRINGOf[account] >= assets);
         stakedRINGOf[account] -= assets;
@@ -108,20 +108,20 @@ contract CollatorStakingHub is CollatorSet {
         depositInfoOf[depositId] = DepositInfo(account, assets, collator);
         _increaseAssets(collator, assets, oldPrev, newPrev);
         require(_stakedDepositsOf[account].add(depositId));
-        emit Staked(collaotr, account, depositId, oldPrev, newPrev);
+        emit Staked(collator, account, depositId, oldPrev, newPrev);
     }
 
     function unstakeNFT(uint256 depositId, address oldPrev, address newPrev) public {
-        require(exist(collator));
         address account = msg.sender;
         DepositInfo memory info = depositInfoOf[depositId];
+        require(exist(info.collator));
         require(info.account == account);
         ICollatorStaking(info.collator).withdraw(account, info.assets);
         DEPOSIT.transferFrom(address(this), account, depositId);
         delete depositInfoOf[depositId];
-        _reduceFund(collator, info.assets, oldPrev, newPrev);
+        _reduceAssets(info.collator, info.assets, oldPrev, newPrev);
         require(_stakedDepositsOf[account].remove(depositId));
-        emit Unstaked(info.collator, info.account, depositId, oldPre, newPrev);
+        emit Unstaked(info.collator, info.account, depositId, oldPrev, newPrev);
     }
 
     function claim(address collator) public {
@@ -131,7 +131,7 @@ contract CollatorStakingHub is CollatorSet {
 
     function distributeReward(address collator) public payable {
         require(exist(collator));
-        require(msg.sender == stakingPallet);
+        require(msg.sender == STAKING_PALLET);
         uint256 rewards = msg.value;
         uint256 commission_ = rewards * commissionOf[collator] / COMMISSION_BASE;
         address operator = collator.operator();

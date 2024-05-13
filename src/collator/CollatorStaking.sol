@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
-import "@openzeppelin/contracts@5.0.2/contracts/math/Math.sol";
-import "@openzeppelin/contracts@5.0.2/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts@5.0.2/utils/Address.sol";
+import "@openzeppelin/contracts@5.0.2/utils/math/Math.sol";
+import "@openzeppelin/contracts@5.0.2/utils/ReentrancyGuard.sol";
 
 // Inheritance
-import "./interfaces/IStakingRewards.sol";
 import "./CRING.sol";
 
-contract CollatorStaking is IStakingRewards, CRING, ReentrancyGuard {
+contract CollatorStaking is CRING, ReentrancyGuard {
+    using Address for address payable;
+
     /* ========== STATE VARIABLES ========== */
 
     address public hub;
@@ -79,8 +81,7 @@ contract CollatorStaking is IStakingRewards, CRING, ReentrancyGuard {
         uint256 reward = rewards[account];
         if (reward > 0) {
             rewards[account] = 0;
-            (bool success,) = account.call.value(reward)("");
-            require(success, "Transfer failed");
+            payable(account).sendValue(reward);
             emit RewardPaid(account, reward);
         }
     }

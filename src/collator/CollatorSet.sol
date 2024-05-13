@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
 contract CollatorSet {
     // collator count;
@@ -14,7 +14,7 @@ contract CollatorSet {
 
     constructor() {
         collators[HEAD] = collators[TAIL];
-        collators[HEAD] = type(uint256).max;
+        assetsOf[HEAD] = type(uint256).max;
     }
 
     function exist(address c) public view returns (bool) {
@@ -27,7 +27,7 @@ contract CollatorSet {
         if (len > k) len = k;
         address cur = collators[HEAD];
         for (uint256 i = 0; i < k; i++) {
-            topCollators = cur;
+            topCollators[i] = cur;
             cur = collators[cur];
         }
         return topCollators;
@@ -62,7 +62,7 @@ contract CollatorSet {
     }
 
     function _reduceAssets(address cur, uint256 assets, address oldPrev, address newPrev) internal {
-        _updateCollator(cur, assetsOf[cur] - assets, oldPrev, newPrev);
+        _updateAssets(cur, assetsOf[cur] - assets, oldPrev, newPrev);
     }
 
     function _updateAssets(address cur, uint256 newAssets, address oldPrev, address newPrev) internal {

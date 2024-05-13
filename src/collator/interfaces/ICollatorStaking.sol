@@ -16,9 +16,9 @@ interface ICollatorStaking {
 
     // Mutative
 
-    function stake(uint256 amount) external;
+    function stake(address account, uint256 assets) external;
 
-    function withdraw(uint256 amount) external;
+    function withdraw(address account, uint256 assets) external;
 
-    function getReward() external;
+    function getReward(address account) external;
 }
