@@ -1,6 +1,6 @@
 pragma solidity >=0.4.24;
 
-interface IStakingRewards {
+interface ICollatorStaking {
     // Views
     function lastTimeRewardApplicable() external view returns (uint256);
 

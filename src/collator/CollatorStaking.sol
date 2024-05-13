@@ -63,16 +63,16 @@ contract CollatorStaking is IStakingRewards, CRING, ReentrancyGuard {
 
     /* ========== MUTATIVE FUNCTIONS ========== */
 
-    function stake(address account, uint256 value) external onlyHub nonReentrant updateReward(account) {
-        require(value > 0, "Cannot stake 0");
-        _mint(account, value);
-        emit Staked(account, value);
+    function stake(address account, uint256 assets) external onlyHub nonReentrant updateReward(account) {
+        require(assets > 0, "Cannot stake 0");
+        _mint(account, assets);
+        emit Staked(account, assets);
     }
 
-    function withdraw(address account, uint256 value) public onlyHub nonReentrant updateReward(account) {
-        require(value > 0, "Cannot withdraw 0");
-        _burn(account, value);
-        emit Withdrawn(account, amount);
+    function withdraw(address account, uint256 assets) public onlyHub nonReentrant updateReward(account) {
+        require(assets > 0, "Cannot withdraw 0");
+        _burn(account, assets);
+        emit Withdrawn(account, assets);
     }
 
     function getReward(address account) public nonReentrant onlyHub updateReward(account) {
