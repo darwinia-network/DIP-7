@@ -81,6 +81,22 @@ contract GovernanceRing is ERC20, ERC20Permit, ERC20Votes, Ownable2Step {
         emit Unwrap(DEPOSIT, msg.sender, depositId);
     }
 
+    function wrapDepositsOf(address account) public view returns (address[] memory) {
+        return _wrapDepositsOf[account].values();
+    }
+
+    function wrapDepositsLength(address account) public view returns (uint256) {
+        return _wrapDepositsOf[account].length();
+    }
+
+    function wrapDepositsAt(address account, uint256 index) public view returns (uint256) {
+        return _wrapDepositsOf[account].at(index);
+    }
+
+    function wrapDepositsContains(address account, uint256 depositId) public view returns (bool) {
+        return _wrapDepositsOf[account].contains(depositId);
+    }
+
     function transfer(address to, uint256 value) public override returns (bool) {
         revert();
     }
