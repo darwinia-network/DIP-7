@@ -1,22 +1,33 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
 
+import "@openzeppelin/contracts@5.0.2/utils/Address.sol";
+import "@openzeppelin/contracts@5.0.2/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts@5.0.2/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts@5.0.2/token/ERC20/extensions/ERC20Permit.sol";
 import "@openzeppelin/contracts@5.0.2/token/ERC20/extensions/ERC20Votes.sol";
 import "@openzeppelin/contracts@5.0.2/access/Ownable2Step.sol";
 
 contract GovernanceRing is ERC20, ERC20Permit, ERC20Votes, Ownable2Step {
+    using Address for address;
+    using EnumerableSet for EnumerableSet.UintSet;
+
     constructor(address dao) ERC20("Governance Ring", "gRING") ERC20Permit("Governance Ring") Ownable2Step(dao) {}
 
     address public hub;
-    // Deposti NFT
-    address public nft;
+    // Deposit NFT.
+    IERC721 public immutable DEPOSIT;
     // depositId => depositor
     mapping(uint256 => address) public depositorOf;
 
-    // depositor => cring => amount
-    mapping(address => mapping(address => uint256)) public amountOf;
+    // depositor => token => assets
+    mapping(address => mapping(address => uint256)) public wrapAssetsOf;
+
+    // depositor => wrap depositIds
+    mapping(address => EnumerableSet.UintSet) private _wrapDepositsOf;
+
+    event Wrap(address token, address account, uint256 assetsOrDepositId);
+    event Unwrap(address token, address account, uint256 assetsOrDepositId);
 
     modifier onlyCRING(address token) {
         require(hub.exist(token));
@@ -25,37 +36,49 @@ contract GovernanceRing is ERC20, ERC20Permit, ERC20Votes, Ownable2Step {
 
     function wrap() public payable {
         _mint(msg.sender, msg.value);
+        wrapAssetsOf[msg.sender][address(0)] += msg.value;
+        emit Wrap(address(0), msg.sender, msg.value);
     }
 
-    function unwrap(uint256 amount) public {
-        _burn(msg.sender, amount);
-        msg.sender.transfer(amount);
+    function unwrap(uint256 assets) public {
+        require(wrapAssetsOf[msg.sender][address(0)] >= assets);
+        _burn(msg.sender, assets);
+        msg.sender.sendValue(assets);
+        wrapAssetsOf[msg.sender][address(0)] -= assets;
+        emit Unwrap(address(0), msg.sender, assets);
     }
 
-    function wrap(address cring, uint256 amount) external onlyCRING(cring) {
-        cring.transferFrom(msg.sender, address(this), amount);
-        _mint(msg.sender, amount);
-        amountOf[msg.sender][cring] += amount;
+    function wrap(address cring, uint256 assets) external onlyCRING(cring) {
+        cring.transferFrom(msg.sender, address(this), assets);
+        _mint(msg.sender, assets);
+        wrapAssetsOf[msg.sender][cring] += assets;
+        emit Wrap(cring, msg.sender, msg.value);
     }
 
-    function unwrap(address cring, uint256 amount) external onlyCRING(cring) {
-        _burn(msg.sender, amount);
-        amountOf[msg.sender][cring] -= amount;
-        cring.transferFrom(address(this), msg.sender, amount);
+    function unwrap(address cring, uint256 assets) external onlyCRING(cring) {
+        require(wrapAssetsOf[msg.sender][cring] >= assets);
+        _burn(msg.sender, assets);
+        cring.transferFrom(address(this), msg.sender, assets);
+        wrapAssetsOf[msg.sender][cring] -= assets;
+        emit Unwrap(cring, msg.sender, assets);
     }
 
     function wrapNFT(uint256 depositId) public {
-        nft.transferFrom(msg.sender, address(this), depositId);
-        uint256 assets = nfg.assetsOf(depositId);
+        DEPOSIT.transferFrom(msg.sender, address(this), depositId);
+        uint256 assets = DEPOSIT.assetsOf(depositId);
         depositorOf[depositId] = msg.sender;
         _mint(msg.sender, assets);
+        require(_wrapDepositsOf[msg.sender].add(depositId));
+        emit Wrap(DEPOSIT, msg.sender, depositId);
     }
 
     function unwrapNFT(uint256 depositId) public {
         require(depositorOf[depositId] == msg.sender);
-        uint256 assets = nfg.assetsOf(depositId);
+        uint256 assets = DEPOSIT.assetsOf(depositId);
         _burn(msg.sernder, assets);
-        fnt.transferFrom(address(this), msg.sender, depositId);
+        DEPOSIT.transferFrom(address(this), msg.sender, depositId);
+        require(_wrapDepositsOf[msg.sender].remove(depositId));
+        emit Unwrap(DEPOSIT, msg.sender, depositId);
     }
 
     function transfer(address to, uint256 value) public override returns (bool) {

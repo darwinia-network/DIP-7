@@ -9,6 +9,9 @@ import "./interfaces/ICollatorStaking.sol";
 import "./CollatorStaking.sol";
 import "./CollatorSet.sol";
 
+// TODO:
+//   1. how to set session key.
+//   2. change collator operator.
 contract CollatorStakingHub is CollatorSet {
     using Strings for uint256;
     using Address for address;
@@ -26,12 +29,12 @@ contract CollatorStakingHub is CollatorSet {
         address collator;
     }
 
-    // depositId => depositInfo
-    mapping(uint256 => DepositInfo) public depositInfoOf;
     // depositor => staked ring
     mapping(address => uint256) public stakedRINGOf;
     // depositor => staked depositIds
     mapping(address => EnumerableSet.UintSet) private _stakedDepositsOf;
+    // depositId => depositInfo
+    mapping(uint256 => DepositInfo) public depositInfoOf;
 
     // Deposit NFT.
     IERC721 public immutable DEPOSIT;
@@ -41,14 +44,13 @@ contract CollatorStakingHub is CollatorSet {
     uint256 private constant COMMISSION_BASE = 10_000;
 
     event CollatorCreated(address indexed collator, address operator, address prev);
-    event RingStaked(address indexed collator, address account, uint256 assets, address oldPrev, address newPrev);
-    event RingUnstaked(address indexed collator, address account, uint256 assets, address oldPrev, address newPrev);
-    event DepositStaked(
-        address indexed collaotr, address account, uint256 assets, uint256 depositId, address oldPrev, address newPrev
+    event Staked(
+        address indexed collator, address account, uint256 assetsOrDepositId, address oldPrev, address newPrev
     );
-    event DepositUnstaked(
-        address indexed collaotr, address account, uint256 assets, uint256 depositId, address oldPrev, address newPrev
+    event Unstaked(
+        address indexed collator, address account, uint256 assetsOrDepositId, address oldPrev, address newPrev
     );
+    event CommissionUpdated(address indexed collator, uint256 commission);
 
     constructor(address dps) CollatorSet() {
         DEPOSIT = IERC721(dps);
@@ -72,6 +74,8 @@ contract CollatorStakingHub is CollatorSet {
         collatorOf[operator] = address(collator);
         _addCollator(collator, 0, prev);
         emit CollatorCreated(collator, operator, prev);
+
+        _collect(collator, commission);
     }
 
     function stake(address collator, address oldPrev, address newPrev) public payable {
@@ -81,7 +85,7 @@ contract CollatorStakingHub is CollatorSet {
         ICollatorStaking(collator).stake(account, assets);
         _increaseAssets(collator, assets, oldPrev, newPrev);
         stakedRINGOf[account] += assets;
-        emit RINGStaked(collator, account, assets, oldPrev, newPrev);
+        emit Staked(collator, account, assets, oldPrev, newPrev);
     }
 
     function unstake(address collator, uint256 assets, address oldPrev, address newPrev) public {
@@ -92,7 +96,7 @@ contract CollatorStakingHub is CollatorSet {
         _reduceAssets(collator, assets, oldPrev, newPrev);
         require(stakedRINGOf[account] >= assets);
         stakedRINGOf[account] -= assets;
-        emit RINGUnstaked(collator, account, assets, oldPrev, newPrev);
+        emit Unstaked(collator, account, assets, oldPrev, newPrev);
     }
 
     function stakeNFT(address collator, uint256 depositId, address oldPrev, address newPrev) public {
@@ -104,7 +108,7 @@ contract CollatorStakingHub is CollatorSet {
         depositInfoOf[depositId] = DepositInfo(account, assets, collator);
         _increaseAssets(collator, assets, oldPrev, newPrev);
         require(_stakedDepositsOf[account].add(depositId));
-        emit DepositStaked(collaotr, account, assets, depositId, oldPrev, newPrev);
+        emit Staked(collaotr, account, depositId, oldPrev, newPrev);
     }
 
     function unstakeNFT(uint256 depositId, address oldPrev, address newPrev) public {
@@ -117,16 +121,16 @@ contract CollatorStakingHub is CollatorSet {
         delete depositInfoOf[depositId];
         _reduceFund(collator, info.assets, oldPrev, newPrev);
         require(_stakedDepositsOf[account].remove(depositId));
-        emit DepositUnstaked(info.collator, info.account, info.assets, depositId, oldPre, newPrev);
+        emit Unstaked(info.collator, info.account, depositId, oldPre, newPrev);
     }
 
-    function claim(address operator) public {
-        address usr = msg.sender;
-        CollatorStaking collator = collatorOf[operator];
-        collator.getReward(usr);
+    function claim(address collator) public {
+        require(exist(collator));
+        collator.getReward(msg.sender);
     }
 
     function distributeReward(address collator) public payable {
+        require(exist(collator));
         require(msg.sender == stakingPallet);
         uint256 rewards = msg.value;
         uint256 commission_ = rewards * commissionOf[collator] / COMMISSION_BASE;
@@ -136,13 +140,15 @@ contract CollatorStakingHub is CollatorSet {
     }
 
     function collect(uint256 commission) public {
-        CollatorStaking collator = collatorOf[msg.sender];
+        address collator = collatorOf[msg.sender];
+        require(exist(collator));
         _collect(collator, commission);
     }
 
     function _collect(address collator, uint256 commission) internal {
         require(commission <= COMMISSION_BASE);
         commissionOf[collator] = commission;
+        emit CommissionUpdated(collator, commission);
     }
 
     function stakedDepositsOf(address account) public view returns (address[] memory) {
