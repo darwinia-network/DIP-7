@@ -7,7 +7,7 @@ import "@openzeppelin/contracts@5.0.2/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts@5.0.2/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts@5.0.2/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts@5.0.2/token/ERC721/extensions/ERC721Burnable.sol";
-import "@openzeppelin/contracts@5.0.2/utils/cryptography/EIP712.sol";
+import "./interfaces/IKTON.sol";
 
 contract Deposit is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Burnable {
     using Address for address payable;
@@ -24,7 +24,7 @@ contract Deposit is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Burnable {
     mapping(uint256 => DepositInfo) public depositOf;
 
     uint256 public constant MONTH = 30 days;
-    IERC20 public constant KTON = IERC20(0x0000000000000000000000000000000000000402);
+    IKTON public constant KTON = IKTON(0x0000000000000000000000000000000000000402);
 
     event NewDeposit(uint256 indexed depositId, address indexed owner, uint256 value, uint256 months, uint256 interest);
     event ClaimedDeposit(
@@ -36,7 +36,7 @@ contract Deposit is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Burnable {
         _;
     }
 
-    constructor() ERC721("Deposit Token", "DPS") EIP712("Deposit Token", "1") {}
+    constructor() ERC721("Deposit Token", "DPS") {}
 
     function migrate(address account, uint48 months) external payable onlySystem {
         _deposit(account, msg.value, months);
@@ -61,7 +61,7 @@ contract Deposit is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Burnable {
 
         _claim(msg.sender, depositId, true, penalty);
 
-        KTON.burn(address(this), penalty);
+        require(KTON.burn(address(this), penalty));
     }
 
     function assetsOf(uint256 id) public view returns (uint256) {
@@ -76,14 +76,14 @@ contract Deposit is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Burnable {
         depositOf[id] = DepositInfo({months: months, startAt: uint48(block.timestamp), value: uint128(value)});
 
         uint256 interest = computeInterest(value, months);
-        KTON.mint(account, interest);
+        require(KTON.mint(account, interest));
         _safeMint(account, id);
 
         emit NewDeposit(id, account, value, months, interest);
         return id;
     }
 
-    function computeInterest(uint256 value, uint48 months) public pure returns (uint256) {
+    function computeInterest(uint256 value, uint256 months) public pure returns (uint256) {
         // TODO:
         uint64 unitInterest = 1_000;
 
@@ -99,7 +99,7 @@ contract Deposit is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Burnable {
         return (unitInterest * value) * ((quotient - 1) * 1000 + remainder * 1000 / denominator) / (197 * 10 ** 7);
     }
 
-    function isClaimRequirePenalty(uint256 id) public view {
+    function isClaimRequirePenalty(uint256 id) public view returns (bool) {
         return depositOf[id].startAt > 0 && block.timestamp - depositOf[id].startAt < depositOf[id].months * MONTH;
     }
 
@@ -117,7 +117,7 @@ contract Deposit is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Burnable {
     }
 
     function _claim(address account, uint256 id, bool isPenalty, uint256 penaltyAmount) internal {
-        require(_requireOwned(id));
+        require(_requireOwned(id) == account);
 
         DepositInfo memory info = depositOf[id];
 

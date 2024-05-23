@@ -8,6 +8,7 @@ import "@openzeppelin/contracts@5.0.2/token/ERC721/IERC721.sol";
 import "./interfaces/ICollatorStaking.sol";
 import "./CollatorStaking.sol";
 import "./CollatorSet.sol";
+import "../deposit/interfaces/IDeposit.sol";
 
 // TODO:
 //   1. how to set session key.
@@ -37,7 +38,7 @@ contract CollatorStakingHub is CollatorSet {
     mapping(uint256 => DepositInfo) public depositInfoOf;
 
     // Deposit NFT.
-    IERC721 public immutable DEPOSIT;
+    IDeposit public immutable DEPOSIT;
     // TODO:
     address public immutable STAKING_PALLET = address(0);
 
@@ -53,7 +54,7 @@ contract CollatorStakingHub is CollatorSet {
     event CommissionUpdated(address indexed collator, uint256 commission);
 
     constructor(address dps) CollatorSet() {
-        DEPOSIT = IERC721(dps);
+        DEPOSIT = IDeposit(dps);
     }
 
     function createCollator(address prev, uint256 commission) public returns (address collator) {
@@ -126,7 +127,7 @@ contract CollatorStakingHub is CollatorSet {
 
     function claim(address collator) public {
         require(exist(collator));
-        collator.getReward(msg.sender);
+        ICollatorStaking(collator).getReward(msg.sender);
     }
 
     function distributeReward(address collator) public payable {
@@ -134,9 +135,9 @@ contract CollatorStakingHub is CollatorSet {
         require(msg.sender == STAKING_PALLET);
         uint256 rewards = msg.value;
         uint256 commission_ = rewards * commissionOf[collator] / COMMISSION_BASE;
-        address operator = collator.operator();
-        operator.transfer(commission_);
-        collator.notifyRewardAmount{value: rewards - commission_}();
+        address operator = ICollatorStaking(collator).operator();
+        payable(operator).sendValue(commission_);
+        ICollatorStaking(collator).notifyRewardAmount{value: rewards - commission_}();
     }
 
     function collect(uint256 commission) public {
@@ -151,7 +152,7 @@ contract CollatorStakingHub is CollatorSet {
         emit CommissionUpdated(collator, commission);
     }
 
-    function stakedDepositsOf(address account) public view returns (address[] memory) {
+    function stakedDepositsOf(address account) public view returns (uint256[] memory) {
         return _stakedDepositsOf[account].values();
     }
 
