@@ -4,7 +4,9 @@ pragma solidity 0.8.20;
 import "@openzeppelin/contracts@5.0.2/utils/Strings.sol";
 import "@openzeppelin/contracts@5.0.2/utils/Address.sol";
 import "@openzeppelin/contracts@5.0.2/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts@5.0.2/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts@5.0.2/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts@5.0.2/utils/ReentrancyGuard.sol";
 import "./interfaces/ICollatorStaking.sol";
 import "./CollatorStaking.sol";
 import "./CollatorSet.sol";
@@ -12,8 +14,7 @@ import "../deposit/interfaces/IDeposit.sol";
 
 // TODO:
 //   1. how to set session key.
-//   2. change collator operator.
-contract CollatorStakingHub is CollatorSet {
+contract CollatorStakingHub is CollatorSet, ReentrancyGuard {
     using Strings for uint256;
     using Address for address payable;
     using EnumerableSet for EnumerableSet.UintSet;
@@ -24,18 +25,15 @@ contract CollatorStakingHub is CollatorSet {
     // collator => commission
     mapping(address => uint256) public commissionOf;
 
-    // collator => staked ring
-    mapping(address => uint256) public assetsOf;
-
     struct DepositInfo {
         address account;
         uint256 assets;
         address collator;
     }
 
-    // depositor => staked ring
+    // user => staked ring
     mapping(address => uint256) public stakedRINGOf;
-    // depositor => staked depositIds
+    // user => staked depositIds
     mapping(address => EnumerableSet.UintSet) private _stakedDepositsOf;
     // depositId => depositInfo
     mapping(uint256 => DepositInfo) public depositInfoOf;
@@ -43,18 +41,13 @@ contract CollatorStakingHub is CollatorSet {
     // Deposit NFT.
     IDeposit public immutable DEPOSIT;
     // TODO:
-    address public immutable STAKING_PALLET = address(0);
-
+    address public constant STAKING_PALLET = address(0);
     // 0 ~ 100
     uint256 private constant COMMISSION_BASE = 100;
 
+    event Staked(address indexed collator, address account, uint256 assets);
+    event Unstaked(address indexed collator, address account, uint256 assets);
     event CollatorCreated(address indexed collator, address operator, address prev);
-    event Staked(
-        address indexed collator, address account, uint256 assetsOrDepositId, address oldPrev, address newPrev
-    );
-    event Unstaked(
-        address indexed collator, address account, uint256 assetsOrDepositId, address oldPrev, address newPrev
-    );
     event CommissionUpdated(address indexed collator, uint256 commission);
 
     constructor(address dps) CollatorSet() {
@@ -63,7 +56,7 @@ contract CollatorStakingHub is CollatorSet {
 
     function createCollator(address prev, uint256 commission) public returns (address collator) {
         address operator = msg.sender;
-        require(collatorOf[operator] == address(0));
+        require(collatorOf[operator] == address(0), "created");
 
         uint256 index = count;
         string memory indexStr = index.toString();
@@ -75,71 +68,78 @@ contract CollatorStakingHub is CollatorSet {
         assembly {
             collator := create2(0, add(initCode, 32), mload(initCode), 0)
         }
+        require(collator != address(0), "!create2");
 
         collatorOf[operator] = address(collator);
         _addCollator(collator, 0, prev);
-        emit CollatorCreated(collator, operator, prev);
-
         _collect(collator, commission);
+        emit CollatorCreated(collator, operator, prev);
     }
 
-    function stake(address collator, address oldPrev, address newPrev) public payable {
-        require(exist(collator));
-        address account = msg.sender;
-        uint256 assets = msg.value;
+    function _stake(address collator, address account, uint256 assets) internal {
+        require(exist(collator), "!exist");
         ICollatorStaking(collator).stake(account, assets);
-        assetsOf[collator] += assets;
-        _increaseScore(collator, _assetsToScore(collator, assets), oldPrev, newPrev);
-        stakedRINGOf[account] += assets;
-        emit Staked(collator, account, assets, oldPrev, newPrev);
+        emit Staked(collator, account, assets);
     }
 
-    function unstake(address collator, uint256 assets, address oldPrev, address newPrev) public {
-        require(exist(collator));
-        address account = msg.sender;
+    function _unstake(address collator, address account, uint256 assets) internal {
+        require(exist(collator), "!exist");
         ICollatorStaking(collator).withdraw(account, assets);
-        assetsOf[collator] -= assets;
-        payable(account).sendValue(assets);
-        _reduceScore(collator, _assetsToScore(collator, assets), oldPrev, newPrev);
-        stakedRINGOf[account] -= assets;
-        emit Unstaked(collator, account, assets, oldPrev, newPrev);
+        emit Unstaked(collator, account, assets);
     }
 
-    function stakeNFT(address collator, uint256 depositId, address oldPrev, address newPrev) public {
-        require(exist(collator));
+    function stakeRING(address collator, address oldPrev, address newPrev) public payable nonReentrant {
+        _stake(collator, msg.sender, msg.value);
+        _increaseScore(collator, _assetsToScore(commissionOf[collator], msg.value), oldPrev, newPrev);
+        stakedRINGOf[msg.sender] += msg.value;
+    }
+
+    function unstakeRING(address collator, uint256 assets, address oldPrev, address newPrev) public nonReentrant {
+        _unstake(collator, msg.sender, assets);
+        payable(account).sendValue(assets);
+        _reduceScore(collator, _assetsToScore(commissionOf[collator], assets), oldPrev, newPrev);
+        stakedRINGOf[msg.sender] -= assets;
+    }
+
+    function stakeNFT(address collator, uint256 depositId, address oldPrev, address newPrev) public nonReentrant {
         address account = msg.sender;
         DEPOSIT.transferFrom(account, address(this), depositId);
         uint256 assets = DEPOSIT.assetsOf(depositId);
-        ICollatorStaking(collator).stake(account, assets);
         depositInfoOf[depositId] = DepositInfo(account, assets, collator);
-        assetsOf[collator] += assets;
-        _increaseScore(collator, _assetsToScore(collator, assets), oldPrev, newPrev);
-        require(_stakedDepositsOf[account].add(depositId));
-        emit Staked(collator, account, depositId, oldPrev, newPrev);
+
+        _stake(collator, account, assets);
+        _increaseScore(collator, _assetsToScore(commissionOf[collator], assets), oldPrev, newPrev);
+        require(_stakedDepositsOf[account].add(depositId), "!add");
     }
 
-    function unstakeNFT(uint256 depositId, address oldPrev, address newPrev) public {
+    function unstakeNFT(uint256 depositId, address oldPrev, address newPrev) public nonReentrant {
         address account = msg.sender;
         DepositInfo memory info = depositInfoOf[depositId];
-        require(exist(info.collator));
         require(info.account == account);
-        ICollatorStaking(info.collator).withdraw(account, info.assets);
         DEPOSIT.transferFrom(address(this), account, depositId);
         delete depositInfoOf[depositId];
-        assetsOf[info.collator] -= info.assets;
-        _reduceScore(info.collator, _assetsToScore(info.collator, info.assets), oldPrev, newPrev);
-        require(_stakedDepositsOf[account].remove(depositId));
-        emit Unstaked(info.collator, info.account, depositId, oldPrev, newPrev);
+
+        _unstake(info.collator, info.account, info.assets);
+        _reduceScore(info.collator, _assetsToScore(commissionOf[info.collator], info.assets), oldPrev, newPrev);
+        require(_stakedDepositsOf[account].remove(depositId), "!remove");
     }
 
-    function claim(address collator) public {
-        require(exist(collator));
+    function claim(address collator) public nonReentrant {
+        require(exist(collator), "!exist");
         ICollatorStaking(collator).getReward(msg.sender);
     }
 
+    function collect(uint256 commission, address oldPrev, address newPrev) public nonReentrant {
+        address collator = collatorOf[msg.sender];
+        require(exist(collator), "!exist");
+        _removeCollator(collator, oldPrev);
+        _collect(collator, commission);
+        _addCollator(collator, _assetsToScore(commission, stakedOf(collator)), newPrev);
+    }
+
     function distributeReward(address collator) public payable {
-        require(exist(collator));
-        require(msg.sender == STAKING_PALLET);
+        require(exist(collator), "!exist");
+        require(msg.sender == STAKING_PALLET, "!system");
         uint256 rewards = msg.value;
         uint256 commission_ = rewards * commissionOf[collator] / COMMISSION_BASE;
         address operator = ICollatorStaking(collator).operator();
@@ -147,13 +147,8 @@ contract CollatorStakingHub is CollatorSet {
         ICollatorStaking(collator).notifyRewardAmount{value: rewards - commission_}();
     }
 
-    function collect(uint256 commission, address oldPrev, address newPrev) public {
-        address collator = collatorOf[msg.sender];
-        require(exist(collator));
-        _removeCollator(collator, oldPrev);
-        _collect(collator, commission);
-        uint256 assets = assetsOf[collator];
-        _addCollator(collator, _assetsToScore(collator, assets), newPrev);
+    function stakedOf(address collator) public view returns (uint256) {
+        return IERC20(collator).totalSupply();
     }
 
     function _collect(address collator, uint256 commission) internal {
@@ -162,8 +157,7 @@ contract CollatorStakingHub is CollatorSet {
         emit CommissionUpdated(collator, commission);
     }
 
-    function _assetsToScore(address collator, uint256 assets) internal view returns (uint256) {
-        uint256 commission = commissionOf[collator];
+    function _assetsToScore(uint256 commission, uint256 assets) internal pure returns (uint256) {
         return assets * (100 - commission) / 100;
     }
 

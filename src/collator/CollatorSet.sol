@@ -12,9 +12,9 @@ contract CollatorSet {
     address private constant HEAD = address(0x1);
     address private constant TAIL = address(0x2);
 
-    event AddCollator(address cur, uint256 score, address prev);
-    event RemoveCollator(address cur, address prev);
-    event UpdateCollator(address cur, uint256 score, address oldPrev, address newPrev);
+    event AddCollator(address indexed cur, uint256 score, address prev);
+    event RemoveCollator(address indexed cur, address prev);
+    event UpdateCollator(address indexed cur, uint256 score, address oldPrev, address newPrev);
 
     constructor() {
         collators[HEAD] = collators[TAIL];
@@ -37,14 +37,18 @@ contract CollatorSet {
         return topCollators;
     }
 
+    function _isValid(address c) internal view returns (bool) {
+        return c != address(0) && c != HEAD && c != TAIL;
+    }
+
     function _addCollator(address cur, uint256 score, address prev) internal {
-        require(cur != address(0) && cur != HEAD && cur != TAIL, "!valid");
+        require(_isValid(cur), "!valid");
         address next = collators[prev];
         // No duplicate collator allowed.
-        require(collators[cur] == address(0));
+        require(collators[cur] == address(0), "!cur");
         // Next collaotr must in the list.
-        require(next != address(0));
-        require(_verifyIndex(prev, score, next));
+        require(next != address(0), "!prev");
+        require(_verifyIndex(prev, score, next), "!score");
         collators[cur] = next;
         collators[prev] = cur;
         scoreOf[cur] = score;
@@ -53,9 +57,9 @@ contract CollatorSet {
     }
 
     function _removeCollator(address cur, address prev) internal {
-        require(cur != address(0) && cur != HEAD && cur != TAIL, "!valid");
-        require(collators[cur] != address(0));
-        require(_isPrevCollator(cur, prev));
+        require(_isValid(cur), "!valid");
+        require(collators[cur] != address(0), "!cur");
+        require(_isPrevCollator(cur, prev), "!prev");
         collators[prev] = collators[cur];
         collators[cur] = address(0);
         scoreOf[cur] = 0;
@@ -72,13 +76,13 @@ contract CollatorSet {
     }
 
     function _updateScore(address cur, uint256 newScore, address oldPrev, address newPrev) internal {
-        require(cur != address(0) && cur != HEAD && cur != TAIL, "!valid");
-        require(collators[cur] != address(0));
-        require(collators[oldPrev] != address(0));
-        require(collators[newPrev] != address(0));
+        require(_isValid(cur), "!valid");
+        require(collators[cur] != address(0), "!cur");
+        require(collators[oldPrev] != address(0), "!oldPrev");
+        require(collators[newPrev] != address(0), "!newPrev");
         if (oldPrev == newPrev) {
-            require(_isPrevCollator(cur, oldPrev));
-            require(_verifyIndex(newPrev, newScore, collators[cur]));
+            require(_isPrevCollator(cur, oldPrev), "!oldPrev");
+            require(_verifyIndex(newPrev, newScore, collators[cur]), "!score");
             scoreOf[cur] = newScore;
         } else {
             _removeCollator(cur, oldPrev);

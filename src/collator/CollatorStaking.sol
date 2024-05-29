@@ -3,12 +3,11 @@ pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts@5.0.2/utils/Address.sol";
 import "@openzeppelin/contracts@5.0.2/utils/math/Math.sol";
-import "@openzeppelin/contracts@5.0.2/utils/ReentrancyGuard.sol";
 
 // Inheritance
 import "./CRING.sol";
 
-contract CollatorStaking is CRING, ReentrancyGuard {
+contract CollatorStaking is CRING {
     using Address for address payable;
 
     /* ========== STATE VARIABLES ========== */
@@ -65,19 +64,19 @@ contract CollatorStaking is CRING, ReentrancyGuard {
 
     /* ========== MUTATIVE FUNCTIONS ========== */
 
-    function stake(address account, uint256 assets) external onlyHub nonReentrant updateReward(account) {
+    function stake(address account, uint256 assets) external onlyHub updateReward(account) {
         require(assets > 0, "Cannot stake 0");
         _mint(account, assets);
         emit Staked(account, assets);
     }
 
-    function withdraw(address account, uint256 assets) public onlyHub nonReentrant updateReward(account) {
+    function withdraw(address account, uint256 assets) public onlyHub updateReward(account) {
         require(assets > 0, "Cannot withdraw 0");
         _burn(account, assets);
         emit Withdrawn(account, assets);
     }
 
-    function getReward(address account) public nonReentrant onlyHub updateReward(account) {
+    function getReward(address account) public onlyHub updateReward(account) {
         uint256 reward = rewards[account];
         if (reward > 0) {
             rewards[account] = 0;
