@@ -50,6 +50,16 @@ contract CollatorStakingHub is CollatorSet, ReentrancyGuard {
     event CollatorCreated(address indexed collator, address operator, address prev);
     event CommissionUpdated(address indexed collator, uint256 commission);
 
+    modifier onlySystem() {
+        require(msg.sender == STAKING_PALLET, "!system");
+        _;
+    }
+
+    modifier checkExist(collator) {
+        require(exist(collator), "!exist");
+        _;
+    }
+
     constructor(address dps) CollatorSet() {
         DEPOSIT = IDeposit(dps);
     }
@@ -76,14 +86,12 @@ contract CollatorStakingHub is CollatorSet, ReentrancyGuard {
         emit CollatorCreated(collator, operator, prev);
     }
 
-    function _stake(address collator, address account, uint256 assets) internal {
-        require(exist(collator), "!exist");
+    function _stake(address collator, address account, uint256 assets) internal checkExist(collator) {
         ICollatorStaking(collator).stake(account, assets);
         emit Staked(collator, account, assets);
     }
 
-    function _unstake(address collator, address account, uint256 assets) internal {
-        require(exist(collator), "!exist");
+    function _unstake(address collator, address account, uint256 assets) internal checkExist(collator) {
         ICollatorStaking(collator).withdraw(account, assets);
         emit Unstaked(collator, account, assets);
     }
@@ -124,22 +132,18 @@ contract CollatorStakingHub is CollatorSet, ReentrancyGuard {
         require(_stakedDepositsOf[account].remove(depositId), "!remove");
     }
 
-    function claim(address collator) public nonReentrant {
-        require(exist(collator), "!exist");
+    function claim(address collator) public checkExist(collator) nonReentrant {
         ICollatorStaking(collator).getReward(msg.sender);
     }
 
-    function collect(uint256 commission, address oldPrev, address newPrev) public nonReentrant {
+    function collect(uint256 commission, address oldPrev, address newPrev) public checkExist(collator) nonReentrant {
         address collator = collatorOf[msg.sender];
-        require(exist(collator), "!exist");
         _removeCollator(collator, oldPrev);
         _collect(collator, commission);
         _addCollator(collator, _assetsToScore(commission, stakedOf(collator)), newPrev);
     }
 
-    function distributeReward(address collator) public payable {
-        require(exist(collator), "!exist");
-        require(msg.sender == STAKING_PALLET, "!system");
+    function distributeReward(address collator) public payable checkExist(collator) onlySystem {
         uint256 rewards = msg.value;
         uint256 commission_ = rewards * commissionOf[collator] / COMMISSION_BASE;
         address operator = ICollatorStaking(collator).operator();

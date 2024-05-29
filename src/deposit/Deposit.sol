@@ -18,12 +18,12 @@ contract Deposit is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Burnable {
         uint128 value;
     }
 
-    address public depositPallet;
-
     uint256 public depositCount;
     mapping(uint256 => DepositInfo) public depositOf;
 
     uint256 public constant MONTH = 30 days;
+    // TODO:
+    address public constant DEPOSIT_PALLET = address(0);
     IKTON public constant KTON = IKTON(0x0000000000000000000000000000000000000402);
 
     event NewDeposit(uint256 indexed depositId, address indexed owner, uint256 value, uint256 months, uint256 interest);
@@ -32,7 +32,7 @@ contract Deposit is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Burnable {
     );
 
     modifier onlySystem() {
-        require(msg.sender == depositPallet);
+        require(msg.sender == DEPOSIT_PALLET);
         _;
     }
 
