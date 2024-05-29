@@ -6,15 +6,19 @@ contract CollatorSet {
     uint256 public count;
     // ordered collators.
     mapping(address => address) public collators;
-    // collator => staked ring
-    mapping(address => uint256) public assetsOf;
+    // collator => score = staked_ring * (1 - commission)
+    mapping(address => uint256) public scoreOf;
 
     address private constant HEAD = address(0x1);
     address private constant TAIL = address(0x2);
 
+    event AddCollator(address cur, uint256 score, address prev);
+    event RemoveCollator(address cur, address prev);
+    event UpdateCollator(address cur, uint256 score, address oldPrev, address newPrev);
+
     constructor() {
         collators[HEAD] = collators[TAIL];
-        assetsOf[HEAD] = type(uint256).max;
+        scoreOf[HEAD] = type(uint256).max;
     }
 
     function exist(address c) public view returns (bool) {
@@ -33,18 +37,19 @@ contract CollatorSet {
         return topCollators;
     }
 
-    function _addCollator(address cur, uint256 assets, address prev) internal {
+    function _addCollator(address cur, uint256 score, address prev) internal {
         require(cur != address(0) && cur != HEAD && cur != TAIL, "!valid");
         address next = collators[prev];
         // No duplicate collator allowed.
         require(collators[cur] == address(0));
         // Next collaotr must in the list.
         require(next != address(0));
-        require(_verifyIndex(prev, assets, next));
+        require(_verifyIndex(prev, score, next));
         collators[cur] = next;
         collators[prev] = cur;
-        assetsOf[cur] = assets;
+        scoreOf[cur] = score;
         count++;
+        emit AddCollator(cur, score, prev);
     }
 
     function _removeCollator(address cur, address prev) internal {
@@ -53,36 +58,38 @@ contract CollatorSet {
         require(_isPrevCollator(cur, prev));
         collators[prev] = collators[cur];
         collators[cur] = address(0);
-        assetsOf[cur] = 0;
+        scoreOf[cur] = 0;
         count--;
+        emit RemoveCollator(cur, prev);
     }
 
-    function _increaseAssets(address cur, uint256 assets, address oldPrev, address newPrev) internal {
-        _updateAssets(cur, assetsOf[cur] + assets, oldPrev, newPrev);
+    function _increaseScore(address cur, uint256 score, address oldPrev, address newPrev) internal {
+        _updateScore(cur, scoreOf[cur] + score, oldPrev, newPrev);
     }
 
-    function _reduceAssets(address cur, uint256 assets, address oldPrev, address newPrev) internal {
-        _updateAssets(cur, assetsOf[cur] - assets, oldPrev, newPrev);
+    function _reduceScore(address cur, uint256 score, address oldPrev, address newPrev) internal {
+        _updateScore(cur, scoreOf[cur] - score, oldPrev, newPrev);
     }
 
-    function _updateAssets(address cur, uint256 newAssets, address oldPrev, address newPrev) internal {
+    function _updateScore(address cur, uint256 newScore, address oldPrev, address newPrev) internal {
         require(cur != address(0) && cur != HEAD && cur != TAIL, "!valid");
         require(collators[cur] != address(0));
         require(collators[oldPrev] != address(0));
         require(collators[newPrev] != address(0));
         if (oldPrev == newPrev) {
             require(_isPrevCollator(cur, oldPrev));
-            require(_verifyIndex(newPrev, newAssets, collators[cur]));
-            assetsOf[cur] = newAssets;
+            require(_verifyIndex(newPrev, newScore, collators[cur]));
+            scoreOf[cur] = newScore;
         } else {
             _removeCollator(cur, oldPrev);
-            _addCollator(cur, newAssets, newPrev);
+            _addCollator(cur, newScore, newPrev);
         }
+        emit UpdateCollator(cur, newScore, oldPrev, newPrev);
     }
 
     // prev >= cur >= next
     function _verifyIndex(address prev, uint256 newValue, address next) internal view returns (bool) {
-        return assetsOf[prev] >= newValue && newValue >= assetsOf[next];
+        return scoreOf[prev] >= newValue && newValue >= scoreOf[next];
     }
 
     function _isPrevCollator(address c, address prev) internal view returns (bool) {

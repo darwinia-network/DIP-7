@@ -24,6 +24,9 @@ contract CollatorStakingHub is CollatorSet {
     // collator => commission
     mapping(address => uint256) public commissionOf;
 
+    // collator => staked ring
+    mapping(address => uint256) public assetsOf;
+
     struct DepositInfo {
         address account;
         uint256 assets;
@@ -42,7 +45,8 @@ contract CollatorStakingHub is CollatorSet {
     // TODO:
     address public immutable STAKING_PALLET = address(0);
 
-    uint256 private constant COMMISSION_BASE = 10_000;
+    // 0 ~ 100
+    uint256 private constant COMMISSION_BASE = 100;
 
     event CollatorCreated(address indexed collator, address operator, address prev);
     event Staked(
@@ -84,7 +88,8 @@ contract CollatorStakingHub is CollatorSet {
         address account = msg.sender;
         uint256 assets = msg.value;
         ICollatorStaking(collator).stake(account, assets);
-        _increaseAssets(collator, assets, oldPrev, newPrev);
+        assetsOf[collator] += assets;
+        _increaseScore(collator, _assetsToScore(collator, assets), oldPrev, newPrev);
         stakedRINGOf[account] += assets;
         emit Staked(collator, account, assets, oldPrev, newPrev);
     }
@@ -93,9 +98,9 @@ contract CollatorStakingHub is CollatorSet {
         require(exist(collator));
         address account = msg.sender;
         ICollatorStaking(collator).withdraw(account, assets);
+        assetsOf[collator] -= assets;
         payable(account).sendValue(assets);
-        _reduceAssets(collator, assets, oldPrev, newPrev);
-        require(stakedRINGOf[account] >= assets);
+        _reduceScore(collator, _assetsToScore(collator, assets), oldPrev, newPrev);
         stakedRINGOf[account] -= assets;
         emit Unstaked(collator, account, assets, oldPrev, newPrev);
     }
@@ -107,7 +112,8 @@ contract CollatorStakingHub is CollatorSet {
         uint256 assets = DEPOSIT.assetsOf(depositId);
         ICollatorStaking(collator).stake(account, assets);
         depositInfoOf[depositId] = DepositInfo(account, assets, collator);
-        _increaseAssets(collator, assets, oldPrev, newPrev);
+        assetsOf[collator] += assets;
+        _increaseScore(collator, _assetsToScore(collator, assets), oldPrev, newPrev);
         require(_stakedDepositsOf[account].add(depositId));
         emit Staked(collator, account, depositId, oldPrev, newPrev);
     }
@@ -120,7 +126,8 @@ contract CollatorStakingHub is CollatorSet {
         ICollatorStaking(info.collator).withdraw(account, info.assets);
         DEPOSIT.transferFrom(address(this), account, depositId);
         delete depositInfoOf[depositId];
-        _reduceAssets(info.collator, info.assets, oldPrev, newPrev);
+        assetsOf[info.collator] -= info.assets;
+        _reduceScore(info.collator, _assetsToScore(info.collator, info.assets), oldPrev, newPrev);
         require(_stakedDepositsOf[account].remove(depositId));
         emit Unstaked(info.collator, info.account, depositId, oldPrev, newPrev);
     }
@@ -140,16 +147,24 @@ contract CollatorStakingHub is CollatorSet {
         ICollatorStaking(collator).notifyRewardAmount{value: rewards - commission_}();
     }
 
-    function collect(uint256 commission) public {
+    function collect(uint256 commission, address oldPrev, address newPrev) public {
         address collator = collatorOf[msg.sender];
         require(exist(collator));
+        _removeCollator(collator, oldPrev);
         _collect(collator, commission);
+        uint256 assets = assetsOf[collator];
+        _addCollator(collator, _assetsToScore(collator, assets), newPrev);
     }
 
     function _collect(address collator, uint256 commission) internal {
         require(commission <= COMMISSION_BASE);
         commissionOf[collator] = commission;
         emit CommissionUpdated(collator, commission);
+    }
+
+    function _assetsToScore(address collator, uint256 assets) internal view returns (uint256) {
+        uint256 commission = commissionOf[collator];
+        return assets * (100 - commission) / 100;
     }
 
     function stakedDepositsOf(address account) public view returns (uint256[] memory) {
