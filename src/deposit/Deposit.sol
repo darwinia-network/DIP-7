@@ -13,12 +13,12 @@ contract Deposit is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Burnable {
     using Address for address payable;
 
     struct DepositInfo {
-        uint48 months;
-        uint48 startAt;
+        uint64 months;
+        uint64 startAt;
         uint128 value;
     }
 
-    uint256 public depositCount;
+    uint256 public count;
     mapping(uint256 => DepositInfo) public depositOf;
 
     uint256 public constant MONTH = 30 days;
@@ -26,10 +26,14 @@ contract Deposit is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Burnable {
     address public constant DEPOSIT_PALLET = address(0);
     IKTON public constant KTON = IKTON(0x0000000000000000000000000000000000000402);
 
-    event NewDeposit(uint256 indexed depositId, address indexed owner, uint256 value, uint256 months, uint256 interest);
-    event ClaimedDeposit(
-        uint256 indexed depositId, address indexed owner, uint256 value, bool isPenalty, uint256 penaltyAmount
+    event DepositCreated(
+        uint256 indexed depositId, address indexed account, uint256 value, uint256 months, uint256 interest
     );
+    event DepositMigrated(
+        uint256 indexed depositId, address indexed account, uint256 value, uint256 months, uint256 startAt
+    );
+    event DepositClaimed(uint256 indexed depositId, address indexed account, uint256 value);
+    event ClaimWithPenalty(uint256 indexed depositId, address indexed account, uint256 penalty);
 
     modifier onlySystem() {
         require(msg.sender == DEPOSIT_PALLET);
@@ -38,53 +42,65 @@ contract Deposit is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Burnable {
 
     constructor() ERC721("Deposit Token", "DPS") {}
 
-    function migrate(address account, uint48 months) external payable onlySystem {
-        _deposit(account, msg.value, months);
+    function migrate(address account, uint64 months, uint64 startAt) external payable onlySystem {
+        uint256 value = msg.value;
+        require(value > 0 && value < type(uint128).max, "!value");
+        require(months <= 36 && months >= 1, "!months");
+        require(startAt <= block.timestamp, "!startAt");
+
+        uint256 id = count++;
+        depositOf[id] = DepositInfo({months: months, startAt: startAt, value: uint128(value)});
+        _safeMint(account, id);
+
+        emit DepositMigrated(id, account, value, months, startAt);
     }
 
-    function deposit(uint48 months) external payable {
+    function deposit(uint64 months) external payable {
         _deposit(msg.sender, msg.value, months);
     }
 
-    function depositFor(address account, uint48 months) external payable {
+    function depositFor(address account, uint64 months) external payable {
         _deposit(account, msg.value, months);
     }
 
     function claim(uint256 depositId) external {
-        _claim(msg.sender, depositId, false, 0);
+        DepositInfo memory info = depositOf[depositId];
+        require(block.timestamp - info.startAt >= info.months * MONTH, "penalty");
+        _claim(msg.sender, depositId, info.value);
     }
 
     function claimWithPenalty(uint256 depositId) public {
         uint256 penalty = computePenalty(depositId);
-
-        require(KTON.transferFrom(msg.sender, address(this), penalty));
-
-        _claim(msg.sender, depositId, true, penalty);
-
         require(KTON.burn(address(this), penalty));
+
+        DepositInfo memory info = depositOf[depositId];
+        require(block.timestamp - info.startAt < info.months * MONTH, "!penalty");
+        _claim(msg.sender, depositId, info.value);
+
+        emit ClaimWithPenalty(depositId, msg.sender, penalty);
     }
 
     function assetsOf(uint256 id) public view returns (uint256) {
         return depositOf[id].value;
     }
 
-    function _deposit(address account, uint256 value, uint48 months) internal returns (uint256) {
+    function _deposit(address account, uint256 value, uint64 months) internal returns (uint256) {
         require(value > 0 && value < type(uint128).max);
         require(months <= 36 && months >= 1);
 
-        uint256 id = depositCount++;
-        depositOf[id] = DepositInfo({months: months, startAt: uint48(block.timestamp), value: uint128(value)});
+        uint256 id = count++;
+        depositOf[id] = DepositInfo({months: months, startAt: uint64(block.timestamp), value: uint128(value)});
 
         uint256 interest = computeInterest(value, months);
         require(KTON.mint(account, interest));
         _safeMint(account, id);
 
-        emit NewDeposit(id, account, value, months, interest);
+        emit DepositCreated(id, account, value, months, interest);
         return id;
     }
 
     function computeInterest(uint256 value, uint256 months) public pure returns (uint256) {
-        // TODO:
+        // TODO: check
         uint64 unitInterest = 1_000;
 
         // these two actually mean the multiplier is 1.015
@@ -93,6 +109,8 @@ contract Deposit is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Burnable {
         uint256 quotient = numerator / denominator;
         uint256 remainder = numerator % denominator;
 
+        // (quotient - 1) * 1000 === 0 (1 <= mouths <= 12) ?
+
         // depositing X RING for 12 months, interest is about (1 * unitInterest * X / 10**7) KTON
         // and the multiplier is about 3
         // ((quotient - 1) * 1000 + remainder * 1000 / denominator) is 197 when _month is 12.
@@ -100,39 +118,26 @@ contract Deposit is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Burnable {
     }
 
     function isClaimRequirePenalty(uint256 id) public view returns (bool) {
-        return depositOf[id].startAt > 0 && block.timestamp - depositOf[id].startAt < depositOf[id].months * MONTH;
+        return block.timestamp - depositOf[id].startAt < depositOf[id].months * MONTH;
     }
 
     function computePenalty(uint256 id) public view returns (uint256) {
-        require(isClaimRequirePenalty(id), "Claim do not need Penalty.");
-
         DepositInfo memory info = depositOf[id];
 
         uint256 monthsDuration = (block.timestamp - info.startAt) / MONTH;
 
-        // TODO:
-        uint256 penalty = 3 * (computeInterest(info.value, info.months) - computeInterest(info.value, monthsDuration));
-
-        return penalty;
+        // TODO: check
+        return 3 * (computeInterest(info.value, info.months) - computeInterest(info.value, monthsDuration));
     }
 
-    function _claim(address account, uint256 id, bool isPenalty, uint256 penaltyAmount) internal {
-        require(_requireOwned(id) == account);
-
-        DepositInfo memory info = depositOf[id];
-
-        if (isPenalty) {
-            require(block.timestamp - info.startAt < info.months * MONTH);
-        } else {
-            require(block.timestamp - info.startAt >= info.months * MONTH);
-        }
-
-        payable(account).sendValue(info.value);
-
-        emit ClaimedDeposit(id, account, info.value, isPenalty, penaltyAmount);
+    function _claim(address account, uint256 id, uint256 value) internal {
+        require(_requireOwned(id) == account, "!owned");
 
         _burn(id);
         delete depositOf[id];
+        payable(account).sendValue(value);
+
+        emit DepositClaimed(id, account, value);
     }
 
     // The following functions are overrides required by Solidity.

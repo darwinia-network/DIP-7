@@ -37,7 +37,7 @@ contract CollatorSet {
         return topCollators;
     }
 
-    function _isValid(address c) internal view returns (bool) {
+    function _isValid(address c) internal pure returns (bool) {
         return c != address(0) && c != HEAD && c != TAIL;
     }
 

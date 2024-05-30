@@ -55,7 +55,7 @@ contract CollatorStakingHub is CollatorSet, ReentrancyGuard {
         _;
     }
 
-    modifier checkExist(collator) {
+    modifier checkExist(address collator) {
         require(exist(collator), "!exist");
         _;
     }
@@ -71,7 +71,7 @@ contract CollatorStakingHub is CollatorSet, ReentrancyGuard {
         uint256 index = count;
         string memory indexStr = index.toString();
         string memory name = string.concat("Collator Staking RING-", indexStr);
-        string memory symbol = string.concat("CRING-", indexStr);
+        string memory symbol = string.concat("cRING-", indexStr);
 
         bytes memory bytecode = type(CollatorStaking).creationCode;
         bytes memory initCode = bytes.concat(bytecode, abi.encode(operator, name, symbol));
@@ -104,7 +104,7 @@ contract CollatorStakingHub is CollatorSet, ReentrancyGuard {
 
     function unstakeRING(address collator, uint256 assets, address oldPrev, address newPrev) public nonReentrant {
         _unstake(collator, msg.sender, assets);
-        payable(account).sendValue(assets);
+        payable(msg.sender).sendValue(assets);
         _reduceScore(collator, _assetsToScore(commissionOf[collator], assets), oldPrev, newPrev);
         stakedRINGOf[msg.sender] -= assets;
     }
@@ -136,8 +136,9 @@ contract CollatorStakingHub is CollatorSet, ReentrancyGuard {
         ICollatorStaking(collator).getReward(msg.sender);
     }
 
-    function collect(uint256 commission, address oldPrev, address newPrev) public checkExist(collator) nonReentrant {
+    function collect(uint256 commission, address oldPrev, address newPrev) public nonReentrant {
         address collator = collatorOf[msg.sender];
+        require(exist(collator), "!exist");
         _removeCollator(collator, oldPrev);
         _collect(collator, commission);
         _addCollator(collator, _assetsToScore(commission, stakedOf(collator)), newPrev);

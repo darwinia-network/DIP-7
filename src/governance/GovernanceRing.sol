@@ -19,20 +19,23 @@ contract GovernanceRing is ERC20, ERC20Permit, ERC20Votes, Ownable2Step {
     ICollatorStakingHub public HUB;
     // Deposit NFT.
     IDeposit public immutable DEPOSIT;
-    // depositId => depositor
+    // depositId => user
     mapping(uint256 => address) public depositorOf;
 
-    // depositor => token => assets
-    mapping(address => mapping(address => uint256)) public wrapAssetsOf;
+    // user => token => assets
+    mapping(address => mapping(address => uint256)) public wrapAssets;
+    // user => wrap depositIds
+    mapping(address => EnumerableSet.UintSet) private _wrapDeposits;
 
-    // depositor => wrap depositIds
-    mapping(address => EnumerableSet.UintSet) private _wrapDepositsOf;
+    address public constant RING = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-    event Wrap(address token, address account, uint256 assetsOrDepositId);
-    event Unwrap(address token, address account, uint256 assetsOrDepositId);
+    event Wrap(address indexed account, address indexed token, uint256 assets);
+    event Unwrap(address indexed account, address indexed token, uint256 assets);
+    event WrapDeposit(address indexed account, address indexed token, uint256 depositId);
+    event UnwrapDeposit(address indexed account, address indexed token, uint256 depositId);
 
     modifier onlyCRING(address token) {
-        require(HUB.exist(token));
+        require(HUB.exist(token), "!cRING");
         _;
     }
 
@@ -45,67 +48,71 @@ contract GovernanceRing is ERC20, ERC20Permit, ERC20Votes, Ownable2Step {
         HUB = ICollatorStakingHub(hub);
     }
 
-    function wrap() public payable {
-        _mint(msg.sender, msg.value);
-        wrapAssetsOf[msg.sender][address(0)] += msg.value;
-        emit Wrap(address(0), msg.sender, msg.value);
+    function _wrap(address account, address token, uint256 assets) internal {
+        _mint(account, assets);
+        wrapAssets[account][token] += assets;
+        emit Wrap(account, token, assets);
     }
 
-    function unwrap(uint256 assets) public {
-        require(wrapAssetsOf[msg.sender][address(0)] >= assets);
-        _burn(msg.sender, assets);
+    function _unwrap(address account, address token, uint256 assets) internal {
+        _burn(account, assets);
+        wrapAssets[account][token] -= assets;
+        emit Unwrap(account, token, assets);
+    }
+
+    function wrapRING() public payable {
+        _wrap(msg.sender, RING, msg.value);
+    }
+
+    function unwrapRING(uint256 assets) public {
+        _unwrap(msg.sender, RING, assets);
         payable(msg.sender).sendValue(assets);
-        wrapAssetsOf[msg.sender][address(0)] -= assets;
-        emit Unwrap(address(0), msg.sender, assets);
     }
 
-    function wrap(address cring, uint256 assets) external onlyCRING(cring) {
+    function wrapCRING(address cring, uint256 assets) external onlyCRING(cring) {
         IERC20(cring).transferFrom(msg.sender, address(this), assets);
-        _mint(msg.sender, assets);
-        wrapAssetsOf[msg.sender][cring] += assets;
-        emit Wrap(cring, msg.sender, assets);
+        _wrap(msg.sender, cring, assets);
     }
 
-    function unwrap(address cring, uint256 assets) external onlyCRING(cring) {
-        require(wrapAssetsOf[msg.sender][cring] >= assets);
-        _burn(msg.sender, assets);
+    function unwrapCRING(address cring, uint256 assets) external onlyCRING(cring) {
+        _unwrap(msg.sender, cring, assets);
         IERC20(cring).transferFrom(address(this), msg.sender, assets);
-        wrapAssetsOf[msg.sender][cring] -= assets;
-        emit Unwrap(cring, msg.sender, assets);
     }
 
-    function wrapNFT(uint256 depositId) public {
-        DEPOSIT.transferFrom(msg.sender, address(this), depositId);
+    function wrapDeposit(uint256 depositId) public {
+        address account = msg.sender;
+        DEPOSIT.transferFrom(account, address(this), depositId);
         uint256 assets = DEPOSIT.assetsOf(depositId);
-        depositorOf[depositId] = msg.sender;
-        _mint(msg.sender, assets);
-        require(_wrapDepositsOf[msg.sender].add(depositId));
-        emit Wrap(address(DEPOSIT), msg.sender, depositId);
+        depositorOf[depositId] = account;
+        require(_wrapDeposits[account].add(depositId), "!add");
+        _wrap(account, address(DEPOSIT), assets);
+        emit WrapDeposit(account, address(DEPOSIT), assets);
     }
 
-    function unwrapNFT(uint256 depositId) public {
-        require(depositorOf[depositId] == msg.sender);
+    function unwrapDeposit(uint256 depositId) public {
+        address account = msg.sender;
+        require(depositorOf[depositId] == account, "!account");
         uint256 assets = DEPOSIT.assetsOf(depositId);
-        _burn(msg.sender, assets);
-        DEPOSIT.transferFrom(address(this), msg.sender, depositId);
-        require(_wrapDepositsOf[msg.sender].remove(depositId));
-        emit Unwrap(address(DEPOSIT), msg.sender, depositId);
+        _unwrap(account, address(DEPOSIT), assets);
+        require(_wrapDeposits[account].remove(depositId), "!remove");
+        DEPOSIT.transferFrom(address(this), account, depositId);
+        emit UnwrapDeposit(account, address(DEPOSIT), depositId);
     }
 
     function wrapDepositsOf(address account) public view returns (uint256[] memory) {
-        return _wrapDepositsOf[account].values();
+        return _wrapDeposits[account].values();
     }
 
     function wrapDepositsLength(address account) public view returns (uint256) {
-        return _wrapDepositsOf[account].length();
+        return _wrapDeposits[account].length();
     }
 
     function wrapDepositsAt(address account, uint256 index) public view returns (uint256) {
-        return _wrapDepositsOf[account].at(index);
+        return _wrapDeposits[account].at(index);
     }
 
     function wrapDepositsContains(address account, uint256 depositId) public view returns (bool) {
-        return _wrapDepositsOf[account].contains(depositId);
+        return _wrapDeposits[account].contains(depositId);
     }
 
     function transfer(address, uint256) public override returns (bool) {
