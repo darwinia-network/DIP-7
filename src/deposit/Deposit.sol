@@ -59,10 +59,6 @@ contract Deposit is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Burnable {
         _deposit(msg.sender, msg.value, months);
     }
 
-    function depositFor(address account, uint64 months) external payable {
-        _deposit(account, msg.value, months);
-    }
-
     function claim(uint256 depositId) external {
         DepositInfo memory info = depositOf[depositId];
         require(block.timestamp - info.startAt >= info.months * MONTH, "penalty");
