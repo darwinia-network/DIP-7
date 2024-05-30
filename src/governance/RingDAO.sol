@@ -6,12 +6,21 @@ import "@openzeppelin/contracts@5.0.2/governance/extensions/GovernorSettings.sol
 import "@openzeppelin/contracts@5.0.2/governance/extensions/GovernorCountingSimple.sol";
 import "@openzeppelin/contracts@5.0.2/governance/extensions/GovernorVotes.sol";
 import "@openzeppelin/contracts@5.0.2/governance/extensions/GovernorTimelockControl.sol";
+import "./GovernorVotesQuorum.sol";
 
-contract RingDAO is Governor, GovernorSettings, GovernorCountingSimple, GovernorVotes, GovernorTimelockControl {
+contract RingDAO is
+    Governor,
+    GovernorSettings,
+    GovernorCountingSimple,
+    GovernorVotes,
+    GovernorVotesQuorum,
+    GovernorTimelockControl
+{
     constructor(IVotes _token, TimelockController _timelock)
         Governor("RingDAO")
         GovernorSettings(1 days, 1 weeks, 1_000_000 * 1e18)
         GovernorVotes(_token)
+        GovernorVotesQuorum(100_000_000 * 1e18)
         GovernorTimelockControl(_timelock)
     {}
 
@@ -23,10 +32,6 @@ contract RingDAO is Governor, GovernorSettings, GovernorCountingSimple, Governor
 
     function votingPeriod() public view override(Governor, GovernorSettings) returns (uint256) {
         return super.votingPeriod();
-    }
-
-    function quorum(uint256) public pure override returns (uint256) {
-        return 100_000_000 * 1e18;
     }
 
     function state(uint256 proposalId)
