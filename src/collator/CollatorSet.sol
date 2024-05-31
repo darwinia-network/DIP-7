@@ -1,14 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-contract CollatorSet {
-    // collator count;
-    uint256 public count;
-    // ordered collators.
-    mapping(address => address) public collators;
-    // collator => score = staked_ring * (1 - commission)
-    mapping(address => uint256) public scoreOf;
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "./CollatorStorage.sol";
 
+abstract contract CollatorSet is Initializable, CollatorStorage {
     address private constant HEAD = address(0x1);
     address private constant TAIL = address(0x2);
 
@@ -16,7 +12,7 @@ contract CollatorSet {
     event RemoveCollator(address indexed cur, address prev);
     event UpdateCollator(address indexed cur, uint256 score, address oldPrev, address newPrev);
 
-    constructor() {
+    function __CollatorSet_init() internal onlyInitializing {
         collators[HEAD] = collators[TAIL];
         scoreOf[HEAD] = type(uint256).max;
     }

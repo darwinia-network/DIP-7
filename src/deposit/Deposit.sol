@@ -1,15 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import "@openzeppelin/contracts@5.0.2/utils/Address.sol";
-import "@openzeppelin/contracts@5.0.2/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts@5.0.2/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts@5.0.2/token/ERC721/extensions/ERC721Enumerable.sol";
-import "@openzeppelin/contracts@5.0.2/token/ERC721/extensions/ERC721URIStorage.sol";
-import "@openzeppelin/contracts@5.0.2/token/ERC721/extensions/ERC721Burnable.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./interfaces/IKTON.sol";
 
-contract Deposit is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Burnable {
+contract Deposit is
+    Initializable,
+    ERC721Upgradeable,
+    ERC721EnumerableUpgradeable,
+    ERC721URIStorageUpgradeable,
+    Ownable2StepUpgradeable
+{
     using Address for address payable;
 
     struct DepositInfo {
@@ -40,7 +46,16 @@ contract Deposit is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Burnable {
         _;
     }
 
-    constructor() ERC721("Deposit Token", "DPS") {}
+    function initialize(address dao) public initializer {
+        __ERC721_init("Deposit NFT", "DPS");
+        __ERC721Enumerable_init();
+        __ERC721URIStorage_init();
+        __Ownable_init(dao);
+    }
+
+    constructor() {
+        _disableInitializers();
+    }
 
     function migrate(address account, uint64 months, uint64 startAt) external payable onlySystem {
         uint256 value = msg.value;
@@ -140,24 +155,32 @@ contract Deposit is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Burnable {
 
     function _update(address to, uint256 tokenId, address auth)
         internal
-        override(ERC721, ERC721Enumerable)
+        override(ERC721Upgradeable, ERC721EnumerableUpgradeable)
         returns (address)
     {
         return super._update(to, tokenId, auth);
     }
 
-    function _increaseBalance(address account, uint128 value) internal override(ERC721, ERC721Enumerable) {
+    function _increaseBalance(address account, uint128 value)
+        internal
+        override(ERC721Upgradeable, ERC721EnumerableUpgradeable)
+    {
         super._increaseBalance(account, value);
     }
 
-    function tokenURI(uint256 tokenId) public view override(ERC721, ERC721URIStorage) returns (string memory) {
+    function tokenURI(uint256 tokenId)
+        public
+        view
+        override(ERC721Upgradeable, ERC721URIStorageUpgradeable)
+        returns (string memory)
+    {
         return super.tokenURI(tokenId);
     }
 
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721, ERC721Enumerable, ERC721URIStorage)
+        override(ERC721Upgradeable, ERC721EnumerableUpgradeable, ERC721URIStorageUpgradeable)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);

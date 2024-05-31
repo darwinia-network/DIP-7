@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import "@openzeppelin/contracts@5.0.2/utils/Strings.sol";
-import "@openzeppelin/contracts@5.0.2/utils/Address.sol";
-import "@openzeppelin/contracts@5.0.2/utils/structs/EnumerableSet.sol";
-import "@openzeppelin/contracts@5.0.2/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts@5.0.2/token/ERC721/IERC721.sol";
-import "@openzeppelin/contracts@5.0.2/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./interfaces/ICollatorStaking.sol";
 import "./CollatorStaking.sol";
 import "./CollatorSet.sol";
@@ -14,29 +16,10 @@ import "../deposit/interfaces/IDeposit.sol";
 
 // TODO:
 //   1. how to set session key.
-contract CollatorStakingHub is CollatorSet, ReentrancyGuard {
+contract CollatorStakingHub is Initializable, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, CollatorSet {
     using Strings for uint256;
     using Address for address payable;
     using EnumerableSet for EnumerableSet.UintSet;
-
-    // operator => collator
-    mapping(address => address) public collatorOf;
-
-    // collator => commission
-    mapping(address => uint256) public commissionOf;
-
-    struct DepositInfo {
-        address account;
-        uint256 assets;
-        address collator;
-    }
-
-    // user => staked ring
-    mapping(address => uint256) public stakedRINGOf;
-    // user => staked depositIds
-    mapping(address => EnumerableSet.UintSet) private _stakedDepositsOf;
-    // depositId => depositInfo
-    mapping(uint256 => DepositInfo) public depositInfoOf;
 
     // Deposit NFT.
     IDeposit public immutable DEPOSIT;
@@ -60,7 +43,12 @@ contract CollatorStakingHub is CollatorSet, ReentrancyGuard {
         _;
     }
 
-    constructor(address dps) CollatorSet() {
+    function initialize(address dao) public initializer {
+        __CollatorSet_init();
+        __Ownable_init(dao);
+    }
+
+    constructor(address dps) {
         DEPOSIT = IDeposit(dps);
     }
 

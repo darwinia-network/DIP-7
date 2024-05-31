@@ -1,24 +1,27 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import "@openzeppelin/contracts@5.0.2/utils/Address.sol";
-import "@openzeppelin/contracts@5.0.2/utils/structs/EnumerableSet.sol";
-import "@openzeppelin/contracts@5.0.2/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts@5.0.2/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts@5.0.2/token/ERC20/extensions/ERC20Permit.sol";
-import "@openzeppelin/contracts@5.0.2/token/ERC20/extensions/ERC20Votes.sol";
-import "@openzeppelin/contracts@5.0.2/token/ERC721/IERC721.sol";
-import "@openzeppelin/contracts@5.0.2/access/Ownable2Step.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PermitUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "../collator/interfaces/ICollatorStakingHub.sol";
 import "../deposit/interfaces/IDeposit.sol";
 
-contract GovernanceRing is ERC20, ERC20Permit, ERC20Votes, Ownable2Step {
+contract GovernanceRing is
+    Initializable,
+    ERC20Upgradeable,
+    ERC20PermitUpgradeable,
+    ERC20VotesUpgradeable,
+    Ownable2StepUpgradeable
+{
     using Address for address payable;
     using EnumerableSet for EnumerableSet.UintSet;
 
-    ICollatorStakingHub public HUB;
-    // Deposit NFT.
-    IDeposit public immutable DEPOSIT;
     // depositId => user
     mapping(uint256 => address) public depositorOf;
 
@@ -27,6 +30,8 @@ contract GovernanceRing is ERC20, ERC20Permit, ERC20Votes, Ownable2Step {
     // user => wrap depositIds
     mapping(address => EnumerableSet.UintSet) private _wrapDeposits;
 
+    ICollatorStakingHub public immutable HUB;
+    IDeposit public immutable DEPOSIT;
     address public constant RING = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     event Wrap(address indexed account, address indexed token, uint256 assets);
@@ -39,11 +44,14 @@ contract GovernanceRing is ERC20, ERC20Permit, ERC20Votes, Ownable2Step {
         _;
     }
 
-    constructor(address dao, address dps, address hub)
-        ERC20("Governance Ring", "gRING")
-        ERC20Permit("Governance Ring")
-        Ownable(dao)
-    {
+    function initialize(address dao) public initializer {
+        __ERC20_init("Governance Ring", "gRING");
+        __ERC20Permit_init("Governance Ring");
+        __ERC20Votes_init();
+        __Ownable_init(dao);
+    }
+
+    constructor(address dps, address hub) {
         DEPOSIT = IDeposit(dps);
         HUB = ICollatorStakingHub(hub);
     }
@@ -135,11 +143,14 @@ contract GovernanceRing is ERC20, ERC20Permit, ERC20Votes, Ownable2Step {
         return "mode=timestamp";
     }
 
-    function _update(address from, address to, uint256 value) internal override(ERC20, ERC20Votes) {
+    function _update(address from, address to, uint256 value)
+        internal
+        override(ERC20Upgradeable, ERC20VotesUpgradeable)
+    {
         super._update(from, to, value);
     }
 
-    function nonces(address owner) public view override(ERC20Permit, Nonces) returns (uint256) {
+    function nonces(address owner) public view override(ERC20PermitUpgradeable, NoncesUpgradeable) returns (uint256) {
         return super.nonces(owner);
     }
 }
