@@ -3,11 +3,9 @@ pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-// Inheritance
-import "./CRING.sol";
-
-contract CollatorStaking is CRING {
+contract CollatorStaking is ERC20 {
     using Address for address payable;
 
     /* ========== STATE VARIABLES ========== */
@@ -30,7 +28,7 @@ contract CollatorStaking is CRING {
 
     /* ========== CONSTRUCTOR ========== */
 
-    constructor(address operator_, string memory name, string memory symbol) CRING(name, symbol) {
+    constructor(address operator_, string memory name, string memory symbol) ERC20(name, symbol) {
         hub = msg.sender;
         operator = operator_;
     }
