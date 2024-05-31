@@ -2,9 +2,9 @@
 pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "./CollatorStorage.sol";
+import "./CollatorStakingHubStorage.sol";
 
-abstract contract CollatorSet is Initializable, CollatorStorage {
+abstract contract CollatorSet is Initializable, CollatorStakingHubStorage {
     address private constant HEAD = address(0x1);
     address private constant TAIL = address(0x2);
 

@@ -3,7 +3,7 @@ pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-contract CollatorStorage {
+contract CollatorStakingHubStorage {
     // ---------------------- CollatorSetStorage ----------------------------
     // collator count;
     uint256 public count;
