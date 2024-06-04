@@ -10,9 +10,9 @@ import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./interfaces/ICollatorStakingPool.sol";
+import "../deposit/interfaces/IDeposit.sol";
 import "./CollatorStakingPool.sol";
 import "./CollatorSet.sol";
-import "../deposit/interfaces/IDeposit.sol";
 
 contract CollatorStakingHub is Initializable, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, CollatorSet {
     using Strings for uint256;
@@ -38,8 +38,9 @@ contract CollatorStakingHub is Initializable, Ownable2StepUpgradeable, Reentranc
     }
 
     function initialize(address dao) public initializer {
-        __CollatorSet_init();
         __Ownable_init(dao);
+        __ReentrancyGuard_init();
+        __CollatorSet_init();
     }
 
     constructor(address dps, string memory symbol) {

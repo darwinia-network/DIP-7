@@ -20,8 +20,11 @@ contract RingDAO is
         _disableInitializers();
     }
 
-    function initialize(IVotes _token, TimelockControllerUpgradeable _timelock) public initializer {
-        __Governor_init("RingDAO");
+    function initialize(IVotes _token, TimelockControllerUpgradeable _timelock, string memory name)
+        public
+        initializer
+    {
+        __Governor_init(name);
         __GovernorSettings_init(1 days, 1 weeks, 1_000_000 * 1e18);
         __GovernorCountingSimple_init();
         __GovernorVotes_init(_token);

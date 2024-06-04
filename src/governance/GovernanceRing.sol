@@ -39,14 +39,14 @@ contract GovernanceRing is
     event WrapDeposit(address indexed account, address indexed token, uint256 depositId);
     event UnwrapDeposit(address indexed account, address indexed token, uint256 depositId);
 
-    modifier onlyCRING(address token) {
-        require(HUB.exist(token), "!cRING");
+    modifier onlySTRING(address token) {
+        require(HUB.exist(token), "!stRING");
         _;
     }
 
-    function initialize(address dao) public initializer {
-        __ERC20_init("Governance Ring", "gRING");
-        __ERC20Permit_init("Governance Ring");
+    function initialize(address dao, string memory name, string memory symbol) public initializer {
+        __ERC20_init(name, symbol);
+        __ERC20Permit_init(symbol);
         __ERC20Votes_init();
         __Ownable_init(dao);
     }
@@ -77,12 +77,12 @@ contract GovernanceRing is
         payable(msg.sender).sendValue(assets);
     }
 
-    function wrapCRING(address cring, uint256 assets) external onlyCRING(cring) {
+    function wrapCRING(address cring, uint256 assets) external onlySTRING(cring) {
         IERC20(cring).transferFrom(msg.sender, address(this), assets);
         _wrap(msg.sender, cring, assets);
     }
 
-    function unwrapCRING(address cring, uint256 assets) external onlyCRING(cring) {
+    function unwrapCRING(address cring, uint256 assets) external onlySTRING(cring) {
         _unwrap(msg.sender, cring, assets);
         IERC20(cring).transferFrom(address(this), msg.sender, assets);
     }

@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./interfaces/IKTON.sol";
@@ -14,9 +15,54 @@ contract Deposit is
     ERC721Upgradeable,
     ERC721EnumerableUpgradeable,
     ERC721URIStorageUpgradeable,
-    Ownable2StepUpgradeable
+    Ownable2StepUpgradeable,
+    ReentrancyGuardUpgradeable
 {
     using Address for address payable;
+
+    // https://github.com/darwinia-network/darwinia/blob/main/core/inflation/src/test.rs#L86C1-L103C2
+    // precision = 10_000
+    uint256[37] public INTERESTS = [
+        0,
+        761,
+        1522,
+        2335,
+        3096,
+        3959,
+        4771,
+        5634,
+        6446,
+        7309,
+        8223,
+        9086,
+        10000,
+        10913,
+        11878,
+        12842,
+        13807,
+        14771,
+        15736,
+        16751,
+        17766,
+        18832,
+        19898,
+        20964,
+        22030,
+        23147,
+        24263,
+        25380,
+        26548,
+        27715,
+        28934,
+        30101,
+        31370,
+        32588,
+        33857,
+        35126,
+        36446
+    ];
+
+    uint256 public count;
 
     struct DepositInfo {
         uint64 months;
@@ -24,7 +70,6 @@ contract Deposit is
         uint128 value;
     }
 
-    uint256 public count;
     mapping(uint256 => DepositInfo) public depositOf;
 
     uint256 public constant MONTH = 30 days;
@@ -46,18 +91,19 @@ contract Deposit is
         _;
     }
 
-    function initialize(address dao) public initializer {
-        __ERC721_init("Deposit NFT", "DPS");
+    function initialize(address dao, string memory name, string memory symbol) public initializer {
+        __ERC721_init(name, symbol);
         __ERC721Enumerable_init();
         __ERC721URIStorage_init();
         __Ownable_init(dao);
+        __ReentrancyGuard_init();
     }
 
     constructor() {
         _disableInitializers();
     }
 
-    function migrate(address account, uint64 months, uint64 startAt) external payable onlySystem {
+    function migrate(address account, uint64 months, uint64 startAt) external payable onlySystem nonReentrant {
         uint256 value = msg.value;
         require(value > 0 && value < type(uint128).max, "!value");
         require(months <= 36 && months >= 1, "!months");
@@ -70,17 +116,17 @@ contract Deposit is
         emit DepositMigrated(id, account, value, months, startAt);
     }
 
-    function deposit(uint64 months) external payable {
+    function deposit(uint64 months) external payable nonReentrant {
         _deposit(msg.sender, msg.value, months);
     }
 
-    function claim(uint256 depositId) external {
+    function claim(uint256 depositId) external nonReentrant {
         DepositInfo memory info = depositOf[depositId];
         require(block.timestamp - info.startAt >= info.months * MONTH, "penalty");
         _claim(msg.sender, depositId, info.value);
     }
 
-    function claimWithPenalty(uint256 depositId) public {
+    function claimWithPenalty(uint256 depositId) public nonReentrant {
         uint256 penalty = computePenalty(depositId);
         require(KTON.burn(address(this), penalty));
 
@@ -110,22 +156,9 @@ contract Deposit is
         return id;
     }
 
-    function computeInterest(uint256 value, uint256 months) public pure returns (uint256) {
-        // TODO: check
-        uint64 unitInterest = 1_000;
-
-        // these two actually mean the multiplier is 1.015
-        uint256 numerator = 67 ** months;
-        uint256 denominator = 66 ** months;
-        uint256 quotient = numerator / denominator;
-        uint256 remainder = numerator % denominator;
-
-        // (quotient - 1) * 1000 === 0 (1 <= mouths <= 12) ?
-
-        // depositing X RING for 12 months, interest is about (1 * unitInterest * X / 10**7) KTON
-        // and the multiplier is about 3
-        // ((quotient - 1) * 1000 + remainder * 1000 / denominator) is 197 when _month is 12.
-        return (unitInterest * value) * ((quotient - 1) * 1000 + remainder * 1000 / denominator) / (197 * 10 ** 7);
+    function computeInterest(uint256 value, uint256 months) public view returns (uint256) {
+        uint256 interest = INTERESTS[months];
+        return value * interest / 10_000;
     }
 
     function isClaimRequirePenalty(uint256 id) public view returns (bool) {
@@ -137,7 +170,6 @@ contract Deposit is
 
         uint256 monthsDuration = (block.timestamp - info.startAt) / MONTH;
 
-        // TODO: check
         return 3 * (computeInterest(info.value, info.months) - computeInterest(info.value, monthsDuration));
     }
 
