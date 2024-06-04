@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -17,7 +18,8 @@ contract GovernanceRing is
     ERC20Upgradeable,
     ERC20PermitUpgradeable,
     ERC20VotesUpgradeable,
-    Ownable2StepUpgradeable
+    Ownable2StepUpgradeable,
+    ReentrancyGuardUpgradeable
 {
     using Address for address payable;
     using EnumerableSet for EnumerableSet.UintSet;
@@ -49,6 +51,7 @@ contract GovernanceRing is
         __ERC20Permit_init(symbol);
         __ERC20Votes_init();
         __Ownable_init(dao);
+        __ReentrancyGuard_init();
     }
 
     constructor(address dps, address hub) {
@@ -68,26 +71,26 @@ contract GovernanceRing is
         emit Unwrap(account, token, assets);
     }
 
-    function wrapRING() public payable {
+    function wrapRING() public payable nonReentrant {
         _wrap(msg.sender, RING, msg.value);
     }
 
-    function unwrapRING(uint256 assets) public {
+    function unwrapRING(uint256 assets) public nonReentrant {
         _unwrap(msg.sender, RING, assets);
         payable(msg.sender).sendValue(assets);
     }
 
-    function wrapCRING(address cring, uint256 assets) external onlySTRING(cring) {
+    function wrapCRING(address cring, uint256 assets) external onlySTRING(cring) nonReentrant {
         IERC20(cring).transferFrom(msg.sender, address(this), assets);
         _wrap(msg.sender, cring, assets);
     }
 
-    function unwrapCRING(address cring, uint256 assets) external onlySTRING(cring) {
+    function unwrapCRING(address cring, uint256 assets) external onlySTRING(cring) nonReentrant {
         _unwrap(msg.sender, cring, assets);
         IERC20(cring).transferFrom(address(this), msg.sender, assets);
     }
 
-    function wrapDeposit(uint256 depositId) public {
+    function wrapDeposit(uint256 depositId) public nonReentrant {
         address account = msg.sender;
         DEPOSIT.transferFrom(account, address(this), depositId);
         uint256 assets = DEPOSIT.assetsOf(depositId);
@@ -97,7 +100,7 @@ contract GovernanceRing is
         emit WrapDeposit(account, address(DEPOSIT), assets);
     }
 
-    function unwrapDeposit(uint256 depositId) public {
+    function unwrapDeposit(uint256 depositId) public nonReentrant {
         address account = msg.sender;
         require(depositorOf[depositId] == account, "!account");
         uint256 assets = DEPOSIT.assetsOf(depositId);
