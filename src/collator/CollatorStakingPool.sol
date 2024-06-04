@@ -5,13 +5,13 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract CollatorStaking is ERC20 {
+contract CollatorStakingPool is ERC20 {
     using Address for address payable;
 
     /* ========== STATE VARIABLES ========== */
 
     address public hub;
-    address public operator;
+    address public collator;
     uint256 public periodFinish = 0;
     uint256 public rewardRate = 0;
     uint256 public rewardsDuration = 7 days;
@@ -28,9 +28,9 @@ contract CollatorStaking is ERC20 {
 
     /* ========== CONSTRUCTOR ========== */
 
-    constructor(address operator_, string memory name, string memory symbol) ERC20(name, symbol) {
+    constructor(address collator_, string memory name, string memory symbol) ERC20(name, symbol) {
         hub = msg.sender;
-        operator = operator_;
+        collator = collator_;
     }
 
     /* ========== VIEWS ========== */

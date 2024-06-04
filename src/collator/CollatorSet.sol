@@ -14,11 +14,7 @@ abstract contract CollatorSet is Initializable, CollatorStakingHubStorage {
 
     function __CollatorSet_init() internal onlyInitializing {
         collators[HEAD] = collators[TAIL];
-        scoreOf[HEAD] = type(uint256).max;
-    }
-
-    function exist(address c) public view returns (bool) {
-        return collators[c] != address(0) && c != HEAD;
+        votesOf[HEAD] = type(uint256).max;
     }
 
     function getTopCollators(uint256 k) public view returns (address[] memory) {
@@ -26,7 +22,7 @@ abstract contract CollatorSet is Initializable, CollatorStakingHubStorage {
         uint256 len = count;
         if (len > k) len = k;
         address cur = collators[HEAD];
-        for (uint256 i = 0; i < k; i++) {
+        for (uint256 i = 0; i < len; i++) {
             topCollators[i] = cur;
             cur = collators[cur];
         }
@@ -47,7 +43,7 @@ abstract contract CollatorSet is Initializable, CollatorStakingHubStorage {
         require(_verifyIndex(prev, score, next), "!score");
         collators[cur] = next;
         collators[prev] = cur;
-        scoreOf[cur] = score;
+        votesOf[cur] = score;
         count++;
         emit AddCollator(cur, score, prev);
     }
@@ -58,17 +54,17 @@ abstract contract CollatorSet is Initializable, CollatorStakingHubStorage {
         require(_isPrevCollator(cur, prev), "!prev");
         collators[prev] = collators[cur];
         collators[cur] = address(0);
-        scoreOf[cur] = 0;
+        votesOf[cur] = 0;
         count--;
         emit RemoveCollator(cur, prev);
     }
 
     function _increaseScore(address cur, uint256 score, address oldPrev, address newPrev) internal {
-        _updateScore(cur, scoreOf[cur] + score, oldPrev, newPrev);
+        _updateScore(cur, votesOf[cur] + score, oldPrev, newPrev);
     }
 
     function _reduceScore(address cur, uint256 score, address oldPrev, address newPrev) internal {
-        _updateScore(cur, scoreOf[cur] - score, oldPrev, newPrev);
+        _updateScore(cur, votesOf[cur] - score, oldPrev, newPrev);
     }
 
     function _updateScore(address cur, uint256 newScore, address oldPrev, address newPrev) internal {
@@ -79,7 +75,7 @@ abstract contract CollatorSet is Initializable, CollatorStakingHubStorage {
         if (oldPrev == newPrev) {
             require(_isPrevCollator(cur, oldPrev), "!oldPrev");
             require(_verifyIndex(newPrev, newScore, collators[cur]), "!score");
-            scoreOf[cur] = newScore;
+            votesOf[cur] = newScore;
         } else {
             _removeCollator(cur, oldPrev);
             _addCollator(cur, newScore, newPrev);
@@ -89,7 +85,7 @@ abstract contract CollatorSet is Initializable, CollatorStakingHubStorage {
 
     // prev >= cur >= next
     function _verifyIndex(address prev, uint256 newValue, address next) internal view returns (bool) {
-        return scoreOf[prev] >= newValue && newValue >= scoreOf[next];
+        return votesOf[prev] >= newValue && newValue >= votesOf[next];
     }
 
     function _isPrevCollator(address c, address prev) internal view returns (bool) {
