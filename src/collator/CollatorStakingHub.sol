@@ -18,9 +18,6 @@ contract CollatorStakingHub is Initializable, ReentrancyGuardUpgradeable, Collat
     using Address for address payable;
     using EnumerableSet for EnumerableSet.UintSet;
 
-    // Deposit NFT.
-    IDeposit public immutable DEPOSIT;
-    string public SYMBOL;
     // TODO:
     address public constant STAKING_PALLET = address(0);
     // 0 ~ 100
@@ -36,14 +33,16 @@ contract CollatorStakingHub is Initializable, ReentrancyGuardUpgradeable, Collat
         _;
     }
 
-    function initialize() public initializer {
+    function initialize(address dps, string memory symbol) public initializer {
+        DEPOSIT = dps;
+        SYMBOL = symbol;
         __ReentrancyGuard_init();
         __CollatorSet_init();
     }
 
-    constructor(address dps, string memory symbol) {
-        DEPOSIT = IDeposit(dps);
-        SYMBOL = symbol;
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
     }
 
     function exist(address pool) public view returns (bool) {
@@ -110,8 +109,8 @@ contract CollatorStakingHub is Initializable, ReentrancyGuardUpgradeable, Collat
 
     function stakeNFT(address collator, uint256 depositId, address oldPrev, address newPrev) public nonReentrant {
         address account = msg.sender;
-        DEPOSIT.transferFrom(account, address(this), depositId);
-        uint256 assets = DEPOSIT.assetsOf(depositId);
+        IDeposit(DEPOSIT).transferFrom(account, address(this), depositId);
+        uint256 assets = IDeposit(DEPOSIT).assetsOf(depositId);
         depositInfos[depositId] = DepositInfo(account, assets, collator);
 
         _stake(collator, account, assets);
@@ -123,7 +122,7 @@ contract CollatorStakingHub is Initializable, ReentrancyGuardUpgradeable, Collat
         address account = msg.sender;
         DepositInfo memory info = depositInfos[depositId];
         require(info.account == account);
-        DEPOSIT.transferFrom(address(this), account, depositId);
+        IDeposit(DEPOSIT).transferFrom(address(this), account, depositId);
         delete depositInfos[depositId];
 
         _unstake(info.collator, info.account, info.assets);

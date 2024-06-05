@@ -13,6 +13,10 @@ contract CollatorStakingHubStorage {
     mapping(address => uint256) public votesOf;
 
     // ---------------------- CollatorStakingHubStorage ---------------------
+    // Deposit NFT.
+    address public DEPOSIT;
+    // CollatorStakingPool symbol subfix
+    string public SYMBOL;
     // collator => stakingPool
     mapping(address => address) public poolOf;
     // stakingPool => collator

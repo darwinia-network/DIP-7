@@ -1,0 +1,11 @@
+{
+  "name": "DIP-7",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/darwinia-network/DIP-7.git",
+  "author": "echo <hujw77@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@openzeppelin/upgrades-core": "^1.33.1"
+  }
+}

@@ -20,46 +20,7 @@ contract Deposit is
 
     // https://github.com/darwinia-network/darwinia/blob/main/core/inflation/src/test.rs#L86C1-L103C2
     // precision = 10_000
-    uint256[37] public INTERESTS = [
-        0,
-        761,
-        1522,
-        2335,
-        3096,
-        3959,
-        4771,
-        5634,
-        6446,
-        7309,
-        8223,
-        9086,
-        10000,
-        10913,
-        11878,
-        12842,
-        13807,
-        14771,
-        15736,
-        16751,
-        17766,
-        18832,
-        19898,
-        20964,
-        22030,
-        23147,
-        24263,
-        25380,
-        26548,
-        27715,
-        28934,
-        30101,
-        31370,
-        32588,
-        33857,
-        35126,
-        36446
-    ];
-
+    uint256[37] public INTERESTS;
     uint256 public count;
 
     struct DepositInfo {
@@ -90,12 +51,56 @@ contract Deposit is
     }
 
     function initialize(string memory name, string memory symbol) public initializer {
+        __DepositInterest_init();
         __ERC721_init(name, symbol);
         __ERC721Enumerable_init();
         __ERC721URIStorage_init();
         __ReentrancyGuard_init();
     }
 
+    function __DepositInterest_init() internal onlyInitializing {
+        INTERESTS = [
+            0,
+            761,
+            1522,
+            2335,
+            3096,
+            3959,
+            4771,
+            5634,
+            6446,
+            7309,
+            8223,
+            9086,
+            10000,
+            10913,
+            11878,
+            12842,
+            13807,
+            14771,
+            15736,
+            16751,
+            17766,
+            18832,
+            19898,
+            20964,
+            22030,
+            23147,
+            24263,
+            25380,
+            26548,
+            27715,
+            28934,
+            30101,
+            31370,
+            32588,
+            33857,
+            35126,
+            36446
+        ];
+    }
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
     }

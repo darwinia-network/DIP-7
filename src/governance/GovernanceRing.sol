@@ -24,14 +24,13 @@ contract GovernanceRing is
 
     // depositId => user
     mapping(uint256 => address) public depositorOf;
-
     // user => token => assets
     mapping(address => mapping(address => uint256)) public wrapAssets;
     // user => wrap depositIds
     mapping(address => EnumerableSet.UintSet) private _wrapDeposits;
+    ICollatorStakingHub public HUB;
+    IDeposit public DEPOSIT;
 
-    ICollatorStakingHub public immutable HUB;
-    IDeposit public immutable DEPOSIT;
     address public constant RING = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     event Wrap(address indexed account, address indexed token, uint256 assets);
@@ -44,16 +43,18 @@ contract GovernanceRing is
         _;
     }
 
-    function initialize(string memory name, string memory symbol) public initializer {
+    function initialize(address dps, address hub, string memory name, string memory symbol) public initializer {
+        DEPOSIT = IDeposit(dps);
+        HUB = ICollatorStakingHub(hub);
         __ERC20_init(name, symbol);
         __ERC20Permit_init(symbol);
         __ERC20Votes_init();
         __ReentrancyGuard_init();
     }
 
-    constructor(address dps, address hub) {
-        DEPOSIT = IDeposit(dps);
-        HUB = ICollatorStakingHub(hub);
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
     }
 
     function _wrap(address account, address token, uint256 assets) internal {

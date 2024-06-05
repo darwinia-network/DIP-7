@@ -24,13 +24,10 @@ contract DeployScript is Script {
             "Deposit.sol:Deposit", multisig, abi.encodeCall(Deposit.initialize, ("RING Deposit NFT", "RDPS"))
         );
 
-        Options memory hubOpts;
-        hubOpts.constructorData = abi.encode(deposit, "RING");
         address hub = Upgrades.deployTransparentProxy(
             "CollatorStakingHub.sol:CollatorStakingHub",
             multisig,
-            abi.encodeCall(CollatorStakingHub.initialize, ()),
-            hubOpts
+            abi.encodeCall(CollatorStakingHub.initialize, (deposit, "RING"))
         );
 
         uint256 minDelay = 3 days;
@@ -43,11 +40,9 @@ contract DeployScript is Script {
         address gRING = Upgrades.deployTransparentProxy(
             "GovernanceRing.sol:GovernanceRing",
             timelock,
-            abi.encodeCall(GovernanceRing.initialize, ("Governance RING", "gRING"))
+            abi.encodeCall(GovernanceRing.initialize, (deposit, hub, "Governance RING", "gRING"))
         );
 
-        Options memory daoOpts;
-        daoOpts.constructorData = abi.encode(deposit, hub);
         address ringDAO = Upgrades.deployTransparentProxy(
             "RingDAO.sol:RingDAO",
             timelock,
