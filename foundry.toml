@@ -3,13 +3,17 @@ src = "src"
 out = "out"
 libs = ["lib"]
 sender = "0x0f14341A7f464320319025540E8Fe48Ad0fe5aec"
+ffi = true
+ast = true
 force = true
+build-info = true
 optimizer = true
 auto_detect_remappings = false
 optimizer_runs = 999999
 evm_version = "london"
 bytecode_hash = "ipfs"
-extra_output_files = ["metadata"]
+extra_output_files = ["storageLayout", "metadata"]
+fs_permissions = [{ access = "read", path = "out" }]
 
 [rpc_endpoints]
 pangolin = "https://pangolin-rpc.darwinia.network"

@@ -7,7 +7,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "../collator/interfaces/ICollatorStakingHub.sol";
@@ -18,7 +17,6 @@ contract GovernanceRing is
     ERC20Upgradeable,
     ERC20PermitUpgradeable,
     ERC20VotesUpgradeable,
-    Ownable2StepUpgradeable,
     ReentrancyGuardUpgradeable
 {
     using Address for address payable;
@@ -46,11 +44,10 @@ contract GovernanceRing is
         _;
     }
 
-    function initialize(address dao, string memory name, string memory symbol) public initializer {
+    function initialize(string memory name, string memory symbol) public initializer {
         __ERC20_init(name, symbol);
         __ERC20Permit_init(symbol);
         __ERC20Votes_init();
-        __Ownable_init(dao);
         __ReentrancyGuard_init();
     }
 

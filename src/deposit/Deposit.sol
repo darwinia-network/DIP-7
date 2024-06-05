@@ -6,7 +6,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./interfaces/IKTON.sol";
 
@@ -15,7 +14,6 @@ contract Deposit is
     ERC721Upgradeable,
     ERC721EnumerableUpgradeable,
     ERC721URIStorageUpgradeable,
-    Ownable2StepUpgradeable,
     ReentrancyGuardUpgradeable
 {
     using Address for address payable;
@@ -91,11 +89,10 @@ contract Deposit is
         _;
     }
 
-    function initialize(address dao, string memory name, string memory symbol) public initializer {
+    function initialize(string memory name, string memory symbol) public initializer {
         __ERC721_init(name, symbol);
         __ERC721Enumerable_init();
         __ERC721URIStorage_init();
-        __Ownable_init(dao);
         __ReentrancyGuard_init();
     }
 

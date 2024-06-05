@@ -7,14 +7,13 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./interfaces/ICollatorStakingPool.sol";
 import "../deposit/interfaces/IDeposit.sol";
 import "./CollatorStakingPool.sol";
 import "./CollatorSet.sol";
 
-contract CollatorStakingHub is Initializable, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, CollatorSet {
+contract CollatorStakingHub is Initializable, ReentrancyGuardUpgradeable, CollatorSet {
     using Strings for uint256;
     using Address for address payable;
     using EnumerableSet for EnumerableSet.UintSet;
@@ -37,8 +36,7 @@ contract CollatorStakingHub is Initializable, Ownable2StepUpgradeable, Reentranc
         _;
     }
 
-    function initialize(address dao) public initializer {
-        __Ownable_init(dao);
+    function initialize() public initializer {
         __ReentrancyGuard_init();
         __CollatorSet_init();
     }
