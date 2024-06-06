@@ -32,8 +32,8 @@ contract Deposit is
     mapping(uint256 => DepositInfo) public depositOf;
 
     uint256 public constant MONTH = 30 days;
-    // TODO:
-    address public constant DEPOSIT_PALLET = address(0);
+    // Deposit Pallet Account
+    address public constant DEPOSIT_PALLET = 0x6d6F646C6461722F6465706F0000000000000000;
     IKTON public constant KTON = IKTON(0x0000000000000000000000000000000000000402);
 
     event DepositCreated(
@@ -130,7 +130,8 @@ contract Deposit is
 
     function claimWithPenalty(uint256 depositId) public nonReentrant {
         uint256 penalty = computePenalty(depositId);
-        require(KTON.burn(address(this), penalty));
+        require(KTON.transferFrom(msg.sender, address(this), penalty), "!transfer");
+        require(KTON.burn(address(this), penalty), "!burn");
 
         DepositInfo memory info = depositOf[depositId];
         require(block.timestamp - info.startAt < info.months * MONTH, "!penalty");
@@ -151,7 +152,7 @@ contract Deposit is
         depositOf[id] = DepositInfo({months: months, startAt: uint64(block.timestamp), value: uint128(value)});
 
         uint256 interest = computeInterest(value, months);
-        require(KTON.mint(account, interest));
+        require(KTON.mint(account, interest), "!mint");
         _safeMint(account, id);
 
         emit DepositCreated(id, account, value, months, interest);

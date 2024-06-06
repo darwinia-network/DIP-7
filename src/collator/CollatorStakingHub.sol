@@ -18,8 +18,8 @@ contract CollatorStakingHub is Initializable, ReentrancyGuardUpgradeable, Collat
     using Address for address payable;
     using EnumerableSet for EnumerableSet.UintSet;
 
-    // TODO:
-    address public constant STAKING_PALLET = address(0);
+    // Staking Pallet Account
+    address public constant STAKING_PALLET = 0x6D6F646C64612f7374616B690000000000000000;
     // 0 ~ 100
     uint256 private constant COMMISSION_BASE = 100;
 
@@ -144,7 +144,7 @@ contract CollatorStakingHub is Initializable, ReentrancyGuardUpgradeable, Collat
         uint256 rewards = msg.value;
         uint256 commission_ = rewards * commissionOf[collator] / COMMISSION_BASE;
         payable(collator).sendValue(commission_);
-        ICollatorStakingPool(collator).notifyRewardAmount{value: rewards - commission_}();
+        ICollatorStakingPool(pool).notifyRewardAmount{value: rewards - commission_}();
     }
 
     function stakedOf(address collator) public view returns (uint256) {
