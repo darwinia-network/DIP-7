@@ -3,9 +3,8 @@ pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract CollatorStakingPool is ERC20 {
+contract CollatorStakingPool {
     using Address for address payable;
 
     /* ========== STATE VARIABLES ========== */
@@ -21,6 +20,9 @@ contract CollatorStakingPool is ERC20 {
     mapping(address => uint256) public userRewardPerTokenPaid;
     mapping(address => uint256) public rewards;
 
+    uint256 private _totalSupply;
+    mapping(address => uint256) private _balances;
+
     modifier onlyHub() {
         require(msg.sender == hub);
         _;
@@ -28,29 +30,37 @@ contract CollatorStakingPool is ERC20 {
 
     /* ========== CONSTRUCTOR ========== */
 
-    constructor(address collator_, string memory name, string memory symbol) ERC20(name, symbol) {
+    constructor(address collator_) {
         hub = msg.sender;
         collator = collator_;
     }
 
     /* ========== VIEWS ========== */
 
+    function totalSupply() external view returns (uint256) {
+        return _totalSupply;
+    }
+
+    function balanceOf(address account) external view returns (uint256) {
+        return _balances[account];
+    }
+
     function lastTimeRewardApplicable() public view returns (uint256) {
         return Math.min(block.timestamp, periodFinish);
     }
 
     function rewardPerToken() public view returns (uint256) {
-        if (totalSupply() == 0) {
+        if (_totalSupply == 0) {
             return rewardPerTokenStored;
         }
-        return rewardPerTokenStored + (lastTimeRewardApplicable() - lastUpdateTime) * rewardRate * 1e18 / totalSupply();
+        return rewardPerTokenStored + (lastTimeRewardApplicable() - lastUpdateTime) * rewardRate * 1e18 / _totalSupply;
         // return rewardPerTokenStored.add(
         //     lastTimeRewardApplicable().sub(lastUpdateTime).mul(rewardRate).mul(1e18).div(_totalSupply)
         // );
     }
 
     function earned(address account) public view returns (uint256) {
-        return balanceOf(account) * (rewardPerToken() - userRewardPerTokenPaid[account]) / 1e18 + rewards[account];
+        return _balances(account) * (rewardPerToken() - userRewardPerTokenPaid[account]) / 1e18 + rewards[account];
         // return _balances[account].mul(rewardPerToken().sub(userRewardPerTokenPaid[account])).div(1e18).add(
         //     rewards[account]
         // );
@@ -64,13 +74,15 @@ contract CollatorStakingPool is ERC20 {
 
     function stake(address account, uint256 assets) external onlyHub updateReward(account) {
         require(assets > 0, "Cannot stake 0");
-        _mint(account, assets);
+        _totalSupply = _totalSupply + assets;
+        _balances[msg.sender] += assets;
         emit Staked(account, assets);
     }
 
     function withdraw(address account, uint256 assets) public onlyHub updateReward(account) {
         require(assets > 0, "Cannot withdraw 0");
-        _burn(account, assets);
+        _totalSupply = _totalSupply - assets;
+        _balances[msg.sender] -= assets;
         emit Withdrawn(account, assets);
     }
 
