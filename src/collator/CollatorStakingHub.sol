@@ -141,6 +141,10 @@ contract CollatorStakingHub is Initializable, ReentrancyGuardUpgradeable, Collat
         _addCollator(collator, _assetsToVotes(commission, stakedOf(collator)), newPrev);
     }
 
+    /// @dev Distribute collator reward from Staking Pallet Account.
+    ///      The amount of the reward must be passed in via msg.value.
+    /// @notice Only Staking Pallet Account could call this function.
+    /// @param collator The collator address to distribute reward.
     function distributeReward(address collator) public payable onlySystem nonReentrant {
         address pool = poolOf[collator];
         require(pool != address(0), "!collator");

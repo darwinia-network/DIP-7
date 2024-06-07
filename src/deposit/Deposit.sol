@@ -105,6 +105,12 @@ contract Deposit is
         _disableInitializers();
     }
 
+    /// @dev Migrate user's deposit from Deposit Pallet to Deposit smart contract.
+    ///      The amount of the deposit value must be passed in via msg.value.
+    /// @notice Only Deposit Pallet Account could call this function.
+    /// @param account The user account address stored in Deposit Pallet.
+    /// @param months The user deposit months stored in Deposit Pallet.
+    /// @param startAt The user deposit start time stored in Deposit Pallet.
     function migrate(address account, uint64 months, uint64 startAt) external payable onlySystem nonReentrant {
         uint256 value = msg.value;
         require(value > 0 && value < type(uint128).max, "!value");

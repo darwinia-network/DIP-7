@@ -17,6 +17,13 @@ abstract contract CollatorSet is Initializable, CollatorStakingHubStorage {
         votesOf[HEAD] = type(uint256).max;
     }
 
+    /// @dev Fetch top k collators in ordered collator set.
+    /// @param `k` Count of top collators.
+    /// @return The `k` top collators.
+    /// *Note*  The result of top collators length is always be `k`.
+    ///         If the length of collator set `len` is less than `k`,
+    ///         the array result of first `len` is filled by nomal collators
+    ///         and the rest of `len - k` collators is filled by address(0)
     function getTopCollators(uint256 k) public view returns (address[] memory) {
         address[] memory topCollators = new address[](k);
         uint256 len = count;
