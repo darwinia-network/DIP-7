@@ -60,7 +60,7 @@ contract CollatorStakingPool {
     }
 
     function earned(address account) public view returns (uint256) {
-        return _balances(account) * (rewardPerToken() - userRewardPerTokenPaid[account]) / 1e18 + rewards[account];
+        return _balances[account] * (rewardPerToken() - userRewardPerTokenPaid[account]) / 1e18 + rewards[account];
         // return _balances[account].mul(rewardPerToken().sub(userRewardPerTokenPaid[account])).div(1e18).add(
         //     rewards[account]
         // );
