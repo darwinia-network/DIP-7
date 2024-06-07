@@ -13,6 +13,8 @@ contract CollatorStakingHubStorage {
     mapping(address => uint256) public votesOf;
 
     // ---------------------- CollatorStakingHubStorage ---------------------
+    // Governance RING
+    address public gRING;
     // Deposit NFT.
     address public DEPOSIT;
     // CollatorStakingPool symbol subfix
@@ -23,6 +25,8 @@ contract CollatorStakingHubStorage {
     mapping(address => address) public collatorOf;
     // collator => commission
     mapping(address => uint256) public commissionOf;
+    // collator => user => lockTime
+    mapping(address => mapping(address => uint256)) public stakingLocks;
     // user => staked ring
     mapping(address => uint256) public stakedRINGOf;
     // user => staked depositIds

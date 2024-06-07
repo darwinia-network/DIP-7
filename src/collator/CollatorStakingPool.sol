@@ -9,6 +9,7 @@ contract CollatorStakingPool {
 
     /* ========== STATE VARIABLES ========== */
 
+    uint256 public id;
     address public hub;
     address public collator;
     uint256 public periodFinish = 0;
@@ -30,9 +31,10 @@ contract CollatorStakingPool {
 
     /* ========== CONSTRUCTOR ========== */
 
-    constructor(address collator_) {
+    constructor(address collator_, uint256 index) {
         hub = msg.sender;
         collator = collator_;
+        id = index;
     }
 
     /* ========== VIEWS ========== */

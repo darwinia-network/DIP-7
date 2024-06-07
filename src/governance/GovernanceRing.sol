@@ -4,17 +4,18 @@ pragma solidity 0.8.20;
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "../collator/interfaces/ICollatorStakingHub.sol";
 import "../deposit/interfaces/IDeposit.sol";
 
 contract GovernanceRing is
     Initializable,
     ERC20Upgradeable,
+    AccessControlUpgradeable,
     ERC20PermitUpgradeable,
     ERC20VotesUpgradeable,
     ReentrancyGuardUpgradeable
@@ -28,33 +29,39 @@ contract GovernanceRing is
     mapping(address => mapping(address => uint256)) public wrapAssets;
     // user => wrap depositIds
     mapping(address => EnumerableSet.UintSet) private _wrapDeposits;
-    ICollatorStakingHub public HUB;
     IDeposit public DEPOSIT;
 
     address public constant RING = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
 
     event Wrap(address indexed account, address indexed token, uint256 assets);
     event Unwrap(address indexed account, address indexed token, uint256 assets);
     event WrapDeposit(address indexed account, address indexed token, uint256 depositId);
     event UnwrapDeposit(address indexed account, address indexed token, uint256 depositId);
 
-    modifier onlySTRING(address token) {
-        require(HUB.exist(token), "!stRING");
-        _;
-    }
-
-    function initialize(address dps, address hub, string memory name, string memory symbol) public initializer {
+    function initialize(address admin, address dps, string memory name, string memory symbol) public initializer {
         DEPOSIT = IDeposit(dps);
-        HUB = ICollatorStakingHub(hub);
         __ERC20_init(name, symbol);
+        __AccessControl_init();
         __ERC20Permit_init(symbol);
         __ERC20Votes_init();
         __ReentrancyGuard_init();
+
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
+    }
+
+    function mint(address to, uint256 assets) public onlyRole(MINTER_ROLE) {
+        _mint(to, assets);
+    }
+
+    function burn(address from, uint256 assets) public onlyRole(BURNER_ROLE) {
+        _burn(from, assets);
     }
 
     function _wrap(address account, address token, uint256 assets) internal {
@@ -76,16 +83,6 @@ contract GovernanceRing is
     function unwrapRING(uint256 assets) public nonReentrant {
         _unwrap(msg.sender, RING, assets);
         payable(msg.sender).sendValue(assets);
-    }
-
-    function wrapCRING(address cring, uint256 assets) external onlySTRING(cring) nonReentrant {
-        IERC20(cring).transferFrom(msg.sender, address(this), assets);
-        _wrap(msg.sender, cring, assets);
-    }
-
-    function unwrapCRING(address cring, uint256 assets) external onlySTRING(cring) nonReentrant {
-        _unwrap(msg.sender, cring, assets);
-        IERC20(cring).transferFrom(address(this), msg.sender, assets);
     }
 
     function wrapDeposit(uint256 depositId) public nonReentrant {

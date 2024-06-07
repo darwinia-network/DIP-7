@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./interfaces/ICollatorStakingPool.sol";
+import "./interfaces/IGRING.sol";
 import "../deposit/interfaces/IDeposit.sol";
 import "./CollatorStakingPool.sol";
 import "./CollatorSet.sol";
@@ -18,7 +19,9 @@ contract CollatorStakingHub is Initializable, ReentrancyGuardUpgradeable, Collat
     using Address for address payable;
     using EnumerableSet for EnumerableSet.UintSet;
 
-    // Staking Pallet Account
+    // The lock-up period starts with the stake or inscrease stake.
+    uint256 public constant LOCK_PERIOD = 1 days;
+    // Staking Pallet Account.
     address public constant STAKING_PALLET = 0x6D6F646C64612f7374616B690000000000000000;
     // 0 ~ 100
     uint256 private constant COMMISSION_BASE = 100;
@@ -33,7 +36,8 @@ contract CollatorStakingHub is Initializable, ReentrancyGuardUpgradeable, Collat
         _;
     }
 
-    function initialize(address dps, string memory symbol) public initializer {
+    function initialize(address gring, address dps, string memory symbol) public initializer {
+        gRING = gring;
         DEPOSIT = dps;
         SYMBOL = symbol;
         __ReentrancyGuard_init();
@@ -54,13 +58,8 @@ contract CollatorStakingHub is Initializable, ReentrancyGuardUpgradeable, Collat
         require(poolOf[collator] == address(0), "created");
 
         uint256 index = count;
-        string memory indexStr = index.toString();
-        string memory tmp = string.concat(string.concat(SYMBOL, "-"), indexStr);
-        string memory name = string.concat("Collator Staking ", tmp);
-        string memory symbol = string.concat("st", tmp);
-
         bytes memory bytecode = type(CollatorStakingPool).creationCode;
-        bytes memory initCode = bytes.concat(bytecode, abi.encode(collator, name, symbol));
+        bytes memory initCode = bytes.concat(bytecode, abi.encode(collator, index));
         assembly {
             pool := create2(0, add(initCode, 32), mload(initCode), 0)
         }
@@ -75,15 +74,19 @@ contract CollatorStakingHub is Initializable, ReentrancyGuardUpgradeable, Collat
     }
 
     function _stake(address collator, address account, uint256 assets) internal {
+        stakingLocks[collator][account] = LOCK_PERIOD + block.timestamp;
         address pool = poolOf[collator];
         require(pool != address(0), "!collator");
         ICollatorStakingPool(pool).stake(account, assets);
+        IGRING(gRING).mint(account, assets);
         emit Staked(pool, collator, account, assets);
     }
 
     function _unstake(address collator, address account, uint256 assets) internal {
+        require(stakingLocks[collator][account] < block.timestamp, "!locked");
         address pool = poolOf[collator];
         require(pool != address(0), "!collator");
+        IGRING(gRING).burn(account, assets);
         ICollatorStakingPool(pool).withdraw(account, assets);
         emit Unstaked(pool, collator, account, assets);
     }
@@ -96,14 +99,14 @@ contract CollatorStakingHub is Initializable, ReentrancyGuardUpgradeable, Collat
 
     function stakeRING(address collator, address oldPrev, address newPrev) public payable nonReentrant {
         _stake(collator, msg.sender, msg.value);
-        _increaseScore(collator, _assetsToVotes(commissionOf[collator], msg.value), oldPrev, newPrev);
+        _increaseVotes(collator, _assetsToVotes(commissionOf[collator], msg.value), oldPrev, newPrev);
         stakedRINGOf[msg.sender] += msg.value;
     }
 
     function unstakeRING(address collator, uint256 assets, address oldPrev, address newPrev) public nonReentrant {
         _unstake(collator, msg.sender, assets);
         payable(msg.sender).sendValue(assets);
-        _reduceScore(collator, _assetsToVotes(commissionOf[collator], assets), oldPrev, newPrev);
+        _reduceVotes(collator, _assetsToVotes(commissionOf[collator], assets), oldPrev, newPrev);
         stakedRINGOf[msg.sender] -= assets;
     }
 
@@ -114,7 +117,7 @@ contract CollatorStakingHub is Initializable, ReentrancyGuardUpgradeable, Collat
         depositInfos[depositId] = DepositInfo(account, assets, collator);
 
         _stake(collator, account, assets);
-        _increaseScore(collator, _assetsToVotes(commissionOf[collator], assets), oldPrev, newPrev);
+        _increaseVotes(collator, _assetsToVotes(commissionOf[collator], assets), oldPrev, newPrev);
         require(_stakedDeposits[account].add(depositId), "!add");
     }
 
@@ -126,7 +129,7 @@ contract CollatorStakingHub is Initializable, ReentrancyGuardUpgradeable, Collat
         delete depositInfos[depositId];
 
         _unstake(info.collator, info.account, info.assets);
-        _reduceScore(info.collator, _assetsToVotes(commissionOf[info.collator], info.assets), oldPrev, newPrev);
+        _reduceVotes(info.collator, _assetsToVotes(commissionOf[info.collator], info.assets), oldPrev, newPrev);
         require(_stakedDeposits[account].remove(depositId), "!remove");
     }
 
