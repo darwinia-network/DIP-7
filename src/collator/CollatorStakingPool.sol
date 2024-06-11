@@ -74,18 +74,18 @@ contract CollatorStakingPool {
 
     /* ========== MUTATIVE FUNCTIONS ========== */
 
-    function stake(address account, uint256 assets) external onlyHub updateReward(account) {
-        require(assets > 0, "Cannot stake 0");
-        _totalSupply = _totalSupply + assets;
-        _balances[msg.sender] += assets;
-        emit Staked(account, assets);
+    function stake(address account, uint256 amount) external onlyHub updateReward(account) {
+        require(amount > 0, "Cannot stake 0");
+        _totalSupply = _totalSupply + amount;
+        _balances[account] += amount;
+        emit Staked(account, amount);
     }
 
-    function withdraw(address account, uint256 assets) public onlyHub updateReward(account) {
-        require(assets > 0, "Cannot withdraw 0");
-        _totalSupply = _totalSupply - assets;
-        _balances[msg.sender] -= assets;
-        emit Withdrawn(account, assets);
+    function withdraw(address account, uint256 amount) public onlyHub updateReward(account) {
+        require(amount > 0, "Cannot withdraw 0");
+        _totalSupply = _totalSupply - amount;
+        _balances[account] -= amount;
+        emit Withdrawn(account, amount);
     }
 
     function getReward(address account) public onlyHub updateReward(account) {
