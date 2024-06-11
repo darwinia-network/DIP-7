@@ -21,7 +21,7 @@ contract Deposit is
     // https://github.com/darwinia-network/darwinia/blob/main/core/inflation/src/test.rs#L86C1-L103C2
     // precision = 10_000
     uint256[37] public INTERESTS;
-    uint256 public count;
+    uint256 private _nextTokenId;
 
     struct DepositInfo {
         uint64 months;
@@ -117,15 +117,15 @@ contract Deposit is
         require(months <= 36 && months >= 1, "!months");
         require(startAt <= block.timestamp, "!startAt");
 
-        uint256 id = count++;
+        uint256 id = _nextTokenId++;
         depositOf[id] = DepositInfo({months: months, startAt: startAt, value: uint128(value)});
         _safeMint(account, id);
 
         emit DepositMigrated(id, account, value, months, startAt);
     }
 
-    function deposit(uint64 months) external payable nonReentrant {
-        _deposit(msg.sender, msg.value, months);
+    function deposit(uint64 months) external payable nonReentrant returns (uint256) {
+        return _deposit(msg.sender, msg.value, months);
     }
 
     function claim(uint256 depositId) external nonReentrant {
@@ -147,6 +147,7 @@ contract Deposit is
     }
 
     function assetsOf(uint256 id) public view returns (uint256) {
+        _requireOwned(id);
         return depositOf[id].value;
     }
 
@@ -154,7 +155,7 @@ contract Deposit is
         require(value > 0 && value < type(uint128).max);
         require(months <= 36 && months >= 1);
 
-        uint256 id = count++;
+        uint256 id = _nextTokenId++;
         depositOf[id] = DepositInfo({months: months, startAt: uint64(block.timestamp), value: uint128(value)});
 
         uint256 interest = computeInterest(value, months);
@@ -171,6 +172,7 @@ contract Deposit is
     }
 
     function isClaimRequirePenalty(uint256 id) public view returns (bool) {
+        _requireOwned(id);
         return block.timestamp - depositOf[id].startAt < depositOf[id].months * MONTH;
     }
 
