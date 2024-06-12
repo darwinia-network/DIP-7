@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
-import {safeconsole} from "forge-std/safeconsole.sol";
 
 import "../../src/collator/CollatorStakingPool.sol";
 
@@ -26,6 +25,10 @@ contract CollatorStakingPoolTest is Test {
         startTime = pool.lastUpdateTime();
         endTime = pool.periodFinish();
         assertEq(endTime, startTime + REWARDS_DURATION);
+    }
+
+    function invariant_hub() public {
+        assertEq(pool.hub(), self);
     }
 
     function test_constructor() public {

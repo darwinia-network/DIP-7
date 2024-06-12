@@ -5,15 +5,15 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./CollatorStakingHubStorage.sol";
 
 abstract contract CollatorSet is Initializable, CollatorStakingHubStorage {
-    address private constant HEAD = address(0x1);
-    address private constant TAIL = address(0x2);
+    address internal constant HEAD = address(0x1);
+    address internal constant TAIL = address(0x2);
 
     event AddCollator(address indexed cur, uint256 votes, address prev);
     event RemoveCollator(address indexed cur, address prev);
     event UpdateCollator(address indexed cur, uint256 votes, address oldPrev, address newPrev);
 
     function __CollatorSet_init() internal onlyInitializing {
-        collators[HEAD] = collators[TAIL];
+        collators[HEAD] = TAIL;
         votesOf[HEAD] = type(uint256).max;
     }
 
