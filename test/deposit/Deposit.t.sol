@@ -72,7 +72,7 @@ contract DepositTest is Test, ERC721Holder {
         assertEq(IERC721Enumerable(deposit).totalSupply(), 0);
     }
 
-    function test_computeInterest() public {
+    function test_computeInterest() public view {
         uint256 UNIT = 1 ether;
         for (uint256 m = 1; m < 37; m++) {
             uint256 interest = Deposit(deposit).INTERESTS(m);

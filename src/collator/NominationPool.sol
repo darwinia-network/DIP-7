@@ -4,7 +4,7 @@ pragma solidity 0.8.20;
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-contract CollatorStakingPool {
+contract NominationPool {
     using Address for address payable;
 
     /* ========== STATE VARIABLES ========== */

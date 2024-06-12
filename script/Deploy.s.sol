@@ -48,7 +48,7 @@ contract DeployScript is Script {
         address hub = Upgrades.deployTransparentProxy(
             "CollatorStakingHub.sol:CollatorStakingHub",
             timelock,
-            abi.encodeCall(CollatorStakingHub.initialize, (gRING, deposit, "RING"))
+            abi.encodeCall(CollatorStakingHub.initialize, (gRING, deposit))
         );
 
         // RingTimelockController(timelock).grantRole(RingTimelockController(timelock).PROPOSER_ROLE(), ringDAO);

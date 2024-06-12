@@ -14,12 +14,12 @@ contract CollatorSetTest is Test, CollatorSet {
         __CollatorSet_init();
     }
 
-    function invariant_check() public {
+    function invariant_check() public view {
         assertTrue(collators[HEAD] != address(0));
         assertTrue(collators[TAIL] == address(0));
     }
 
-    function test_init() public {
+    function test_init() public view {
         assertEq(collators[HEAD], TAIL);
         assertEq(collators[TAIL], address(0));
         assertEq(votesOf[HEAD], type(uint256).max);
@@ -120,20 +120,20 @@ contract CollatorSetTest is Test, CollatorSet {
         _reduceVotes(cur, votes, oldPrev, newPrev);
     }
 
-    function checkCount(uint256 cnt) public {
+    function checkCount(uint256 cnt) public view {
         assertEq(cnt, count);
     }
 
-    function checkIn(address cur) public {
+    function checkIn(address cur) public view {
         assertTrue(collators[cur] != address(0) && cur != HEAD && cur != TAIL);
     }
 
-    function checkOut(address cur) public {
+    function checkOut(address cur) public view {
         assertTrue(collators[cur] == address(0) && cur != HEAD && cur != TAIL);
         assertEq(votesOf[cur], 0);
     }
 
-    function checkIndex(address prev, address cur, address next) public {
+    function checkIndex(address prev, address cur, address next) public view {
         assertTrue(collators[prev] == cur);
         assertTrue(collators[cur] == next);
         assertTrue(votesOf[prev] >= votesOf[cur]);

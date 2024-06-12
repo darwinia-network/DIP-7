@@ -10,7 +10,7 @@ import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol
 import "./interfaces/ICollatorStakingPool.sol";
 import "./interfaces/IGRING.sol";
 import "../deposit/interfaces/IDeposit.sol";
-import "./CollatorStakingPool.sol";
+import "./NominationPool.sol";
 import "./CollatorSet.sol";
 
 contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
@@ -35,10 +35,9 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
         _;
     }
 
-    function initialize(address gring, address dps, string memory symbol) public initializer {
+    function initialize(address gring, address dps) public initializer {
         gRING = gring;
         DEPOSIT = dps;
-        SYMBOL = symbol;
         __ReentrancyGuard_init();
         __CollatorSet_init();
     }
@@ -57,7 +56,7 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
         require(poolOf[collator] == address(0), "created");
 
         uint256 index = count;
-        bytes memory bytecode = type(CollatorStakingPool).creationCode;
+        bytes memory bytecode = type(NominationPool).creationCode;
         bytes memory initCode = bytes.concat(bytecode, abi.encode(collator, index));
         assembly {
             pool := create2(0, add(initCode, 32), mload(initCode), 0)

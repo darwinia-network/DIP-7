@@ -3,10 +3,10 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
-import "../../src/collator/CollatorStakingPool.sol";
+import "../../src/collator/NominationPool.sol";
 
-contract CollatorStakingPoolTest is Test {
-    CollatorStakingPool pool;
+contract NominationPoolTest is Test {
+    NominationPool pool;
     uint256 startTime;
     uint256 endTime;
     uint256 reward = 100 ether;
@@ -16,7 +16,7 @@ contract CollatorStakingPoolTest is Test {
     address bob = address(new Guy());
 
     function setUp() public {
-        pool = new CollatorStakingPool(self, 0);
+        pool = new NominationPool(self, 0);
         assertEq(pool.rewardsDuration(), REWARDS_DURATION);
     }
 
@@ -27,11 +27,11 @@ contract CollatorStakingPoolTest is Test {
         assertEq(endTime, startTime + REWARDS_DURATION);
     }
 
-    function invariant_hub() public {
+    function invariant_hub() public view {
         assertEq(pool.hub(), self);
     }
 
-    function test_constructor() public {
+    function test_constructor() public view {
         assertEq(pool.totalSupply(), 0);
     }
 
