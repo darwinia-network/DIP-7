@@ -82,6 +82,7 @@ contract CollatorStakingHubTest is Test {
         assertEq(NominationPool(a).balanceOf(alice), stake);
         assertEq(hub.votesOf(alith), stake * (100 - commissoin) / 100);
         assertEq(hub.stakedOf(alith), stake);
+        assertEq(IERC20(gring).balanceOf(alice), stake);
     }
 
     function test_claim() public {
@@ -124,6 +125,7 @@ contract CollatorStakingHubTest is Test {
         hub.unstakeRING(alith, stake, HEAD, HEAD);
         assertEq(alice.balance, stake);
         assertEq(hub.stakedOf(alith), 0);
+        assertEq(IERC20(gring).balanceOf(alice), 0);
     }
 
     function test_stakeNFT() public {
@@ -154,6 +156,7 @@ contract CollatorStakingHubTest is Test {
         assertEq(NominationPool(a).balanceOf(alice), stake);
         assertEq(hub.votesOf(alith), stake * (100 - commissoin) / 100);
         assertEq(hub.stakedOf(alith), stake);
+        assertEq(IERC20(gring).balanceOf(alice), stake);
     }
 
     function test_unstakeNFT() public {
@@ -187,6 +190,7 @@ contract CollatorStakingHubTest is Test {
         assertEq(NominationPool(a).balanceOf(alice), 0);
         assertEq(hub.votesOf(alith), 0);
         assertEq(hub.stakedOf(alith), 0);
+        assertEq(IERC20(gring).balanceOf(alice), 0);
     }
 }
 
