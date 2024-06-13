@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Script} from "forge-std/Script.sol";
+import {safeconsole} from "forge-std/safeconsole.sol";
 import {Upgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 import {Options} from "openzeppelin-foundry-upgrades/Options.sol";
 
@@ -19,10 +20,12 @@ contract DeployScript is Script {
 
         // RingDAO-multisig
         address multisig = 0x040f331774Ed6BB161412B4cEDb1358B382aF3A5;
+        safeconsole.log("Multisig: ", multisig);
 
         address deposit = Upgrades.deployTransparentProxy(
             "Deposit.sol:Deposit", multisig, abi.encodeCall(Deposit.initialize, ("RING Deposit NFT", "RDPS"))
         );
+        safeconsole.log("Depoist: ", deposit);
 
         uint256 minDelay = 3 days;
         address timelock = Upgrades.deployTransparentProxy(
@@ -30,12 +33,14 @@ contract DeployScript is Script {
             multisig,
             abi.encodeCall(RingTimelockController.initialize, (minDelay, new address[](0), new address[](0), multisig))
         );
+        safeconsole.log("Timelock: ", timelock);
 
         address gRING = Upgrades.deployTransparentProxy(
             "GovernanceRing.sol:GovernanceRing",
             timelock,
             abi.encodeCall(GovernanceRing.initialize, (multisig, deposit, "Governance RING", "gRING"))
         );
+        safeconsole.log("gRING: ", gRING);
 
         address ringDAO = Upgrades.deployTransparentProxy(
             "RingDAO.sol:RingDAO",
@@ -44,12 +49,14 @@ contract DeployScript is Script {
                 RingDAO.initialize, (IVotes(gRING), TimelockControllerUpgradeable(payable(timelock)), "RingDAO")
             )
         );
+        safeconsole.log("RingDAO: ", ringDAO);
 
         address hub = Upgrades.deployTransparentProxy(
             "CollatorStakingHub.sol:CollatorStakingHub",
             timelock,
             abi.encodeCall(CollatorStakingHub.initialize, (gRING, deposit))
         );
+        safeconsole.log("Hub: ", hub);
 
         // RingTimelockController(timelock).grantRole(RingTimelockController(timelock).PROPOSER_ROLE(), ringDAO);
         // RingTimelockController(gRING).grantRole(GovernanceRing(gRING).MINTER_ROLE(), hub);
