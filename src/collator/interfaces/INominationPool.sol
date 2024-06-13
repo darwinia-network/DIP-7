@@ -2,8 +2,6 @@ pragma solidity >=0.4.24;
 
 interface INominationPool {
     // Views
-    function operator() external view returns (address);
-
     function lastTimeRewardApplicable() external view returns (uint256);
 
     function rewardPerToken() external view returns (uint256);

@@ -4,7 +4,7 @@ pragma solidity 0.8.20;
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
@@ -15,7 +15,7 @@ import "../deposit/interfaces/IDeposit.sol";
 contract GovernanceRing is
     Initializable,
     ERC20Upgradeable,
-    AccessControlUpgradeable,
+    AccessControlEnumerableUpgradeable,
     ERC20PermitUpgradeable,
     ERC20VotesUpgradeable,
     ReentrancyGuardUpgradeable
@@ -43,7 +43,7 @@ contract GovernanceRing is
     function initialize(address admin, address dps, string memory name, string memory symbol) public initializer {
         DEPOSIT = IDeposit(dps);
         __ERC20_init(name, symbol);
-        __AccessControl_init();
+        __AccessControlEnumerable_init();
         __ERC20Permit_init(symbol);
         __ERC20Votes_init();
         __ReentrancyGuard_init();

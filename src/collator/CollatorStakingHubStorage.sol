@@ -19,8 +19,6 @@ contract CollatorStakingHubStorage {
     address public DEPOSIT;
     // collator => stakingPool
     mapping(address => address) public poolOf;
-    // stakingPool => collator
-    mapping(address => address) public collatorOf;
     // collator => commission
     mapping(address => uint256) public commissionOf;
     // collator => user => lockTime
