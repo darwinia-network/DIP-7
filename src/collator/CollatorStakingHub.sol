@@ -4,10 +4,9 @@ pragma solidity 0.8.20;
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import "./interfaces/ICollatorStakingPool.sol";
+import "./interfaces/INominationPool.sol";
 import "./interfaces/IGRING.sol";
 import "../deposit/interfaces/IDeposit.sol";
 import "./NominationPool.sol";
@@ -27,7 +26,7 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
 
     event Staked(address indexed pool, address collator, address account, uint256 assets);
     event Unstaked(address indexed pool, address collator, address account, uint256 assets);
-    event CollatorStakingPoolCreated(address indexed stRING, address collator, address prev);
+    event NominationPoolCreated(address indexed stRING, address collator, address prev);
     event CommissionUpdated(address indexed collator, uint256 commission);
 
     modifier onlySystem() {
@@ -47,11 +46,7 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
         _disableInitializers();
     }
 
-    function exist(address pool) public view returns (bool) {
-        return collatorOf[pool] != address(0);
-    }
-
-    function createCollatorStakingPool(address prev, uint256 commission) public returns (address pool) {
+    function createNominationPool(address prev, uint256 commission) public returns (address pool) {
         address collator = msg.sender;
         require(poolOf[collator] == address(0), "created");
 
@@ -62,20 +57,18 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
             pool := create2(0, add(initCode, 32), mload(initCode), 0)
         }
         require(pool != address(0), "!create2");
-        require(collatorOf[pool] == address(0), "duplicate");
 
         poolOf[collator] = pool;
-        collatorOf[pool] = collator;
         _addCollator(collator, 0, prev);
         _collect(collator, commission);
-        emit CollatorStakingPoolCreated(pool, collator, prev);
+        emit NominationPoolCreated(pool, collator, prev);
     }
 
     function _stake(address collator, address account, uint256 assets) internal {
         stakingLocks[collator][account] = LOCK_PERIOD + block.timestamp;
         address pool = poolOf[collator];
         require(pool != address(0), "!collator");
-        ICollatorStakingPool(pool).stake(account, assets);
+        INominationPool(pool).stake(account, assets);
         IGRING(gRING).mint(account, assets);
         emit Staked(pool, collator, account, assets);
     }
@@ -85,14 +78,14 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
         address pool = poolOf[collator];
         require(pool != address(0), "!collator");
         IGRING(gRING).burn(account, assets);
-        ICollatorStakingPool(pool).withdraw(account, assets);
+        INominationPool(pool).withdraw(account, assets);
         emit Unstaked(pool, collator, account, assets);
     }
 
     function claim(address collator) public nonReentrant {
         address pool = poolOf[collator];
         require(pool != address(0), "!collator");
-        ICollatorStakingPool(pool).getReward(msg.sender);
+        INominationPool(pool).getReward(msg.sender);
     }
 
     function stakeRING(address collator, address oldPrev, address newPrev) public payable nonReentrant {
@@ -149,11 +142,13 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
         uint256 rewards = msg.value;
         uint256 commission_ = rewards * commissionOf[collator] / COMMISSION_BASE;
         payable(collator).sendValue(commission_);
-        ICollatorStakingPool(pool).notifyRewardAmount{value: rewards - commission_}();
+        INominationPool(pool).notifyRewardAmount{value: rewards - commission_}();
     }
 
     function stakedOf(address collator) public view returns (uint256) {
-        return IERC20(collator).totalSupply();
+        address pool = poolOf[collator];
+        require(pool != address(0), "!collator");
+        return INominationPool(pool).totalSupply();
     }
 
     function _collect(address collator, uint256 commission) internal {

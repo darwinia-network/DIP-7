@@ -17,8 +17,6 @@ contract CollatorStakingHubStorage {
     address public gRING;
     // Deposit NFT.
     address public DEPOSIT;
-    // CollatorStakingPool symbol subfix
-    string public SYMBOL;
     // collator => stakingPool
     mapping(address => address) public poolOf;
     // stakingPool => collator

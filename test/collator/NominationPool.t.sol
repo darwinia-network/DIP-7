@@ -33,6 +33,9 @@ contract NominationPoolTest is Test {
 
     function test_constructor() public view {
         assertEq(pool.totalSupply(), 0);
+        assertEq(pool.id(), 0);
+        assertEq(pool.hub(), self);
+        assertEq(pool.collator(), self);
     }
 
     function test_notifyRewardAmount_full() public {

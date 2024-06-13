@@ -1,6 +1,6 @@
 pragma solidity >=0.4.24;
 
-interface ICollatorStakingPool {
+interface INominationPool {
     // Views
     function operator() external view returns (address);
 

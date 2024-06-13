@@ -159,6 +159,7 @@ contract Deposit is
         depositOf[id] = DepositInfo({months: months, startAt: uint64(block.timestamp), value: uint128(value)});
 
         uint256 interest = computeInterest(value, months);
+        require(interest > 0, "!interest");
         require(KTON.mint(account, interest), "!mint");
         _safeMint(account, id);
 
