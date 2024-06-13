@@ -214,7 +214,7 @@ contract Deposit is
 
     function tokenURI(uint256)
         public
-        view
+        pure
         override(ERC721Upgradeable, ERC721URIStorageUpgradeable)
         returns (string memory)
     {

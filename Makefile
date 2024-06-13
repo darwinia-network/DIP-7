@@ -7,7 +7,7 @@ all    :; @forge build
 fmt    :; @forge fmt
 clean  :; @forge clean
 test   :; @forge test
-deploy :; @forge script script/Deploy.s.sol:Deploy --chain ${chain-id} --broadcast --verify
+deploy :; @forge script script/Deploy.s.sol:DeployScript --chain ${chain-id} --broadcast --verify
 
 sync   :; @git submodule update --recursive
 
