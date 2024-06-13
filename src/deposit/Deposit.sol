@@ -212,13 +212,13 @@ contract Deposit is
         super._increaseBalance(account, value);
     }
 
-    function tokenURI(uint256 tokenId)
+    function tokenURI(uint256)
         public
         view
         override(ERC721Upgradeable, ERC721URIStorageUpgradeable)
         returns (string memory)
     {
-        return super.tokenURI(tokenId);
+        return "ipfs://bafybeih57kauz6npkbafh2x3cv3hyljcakdccuckb4huwnwxxxrtqr5pqe";
     }
 
     function supportsInterface(bytes4 interfaceId)
