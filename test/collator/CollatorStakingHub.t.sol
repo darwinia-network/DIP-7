@@ -128,7 +128,7 @@ contract CollatorStakingHubTest is Test {
         assertEq(IERC20(gring).balanceOf(alice), 0);
     }
 
-    function test_stakeNFT() public {
+    function test_stakeDeposit() public {
         uint256 stake = 1 ether;
         vm.deal(alice, stake);
         vm.prank(alice);
@@ -141,7 +141,7 @@ contract CollatorStakingHubTest is Test {
         vm.prank(alice);
         Deposit(deposit).approve(address(hub), id);
         vm.prank(alice);
-        hub.stakeNFT(alith, id, HEAD, HEAD);
+        hub.stakeDeposit(alith, id, HEAD, HEAD);
         assertEq(hub.stakingLocks(alith, alice), hub.LOCK_PERIOD() + block.timestamp);
         (address account, uint256 assets, address collator) = hub.depositInfos(id);
         assertEq(account, alice);
@@ -159,7 +159,7 @@ contract CollatorStakingHubTest is Test {
         assertEq(IERC20(gring).balanceOf(alice), stake);
     }
 
-    function test_unstakeNFT() public {
+    function test_unstakeDeposit() public {
         uint256 stake = 1 ether;
         vm.deal(alice, stake);
         vm.prank(alice);
@@ -172,12 +172,12 @@ contract CollatorStakingHubTest is Test {
         vm.prank(alice);
         Deposit(deposit).approve(address(hub), id);
         vm.prank(alice);
-        hub.stakeNFT(alith, id, HEAD, HEAD);
+        hub.stakeDeposit(alith, id, HEAD, HEAD);
 
         vm.warp(block.timestamp + hub.LOCK_PERIOD() + 1);
 
         vm.prank(alice);
-        hub.unstakeNFT(id, HEAD, HEAD);
+        hub.unstakeDeposit(id, HEAD, HEAD);
 
         (address account, uint256 assets, address collator) = hub.depositInfos(id);
         assertEq(account, address(0));

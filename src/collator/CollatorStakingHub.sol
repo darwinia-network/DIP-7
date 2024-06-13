@@ -101,7 +101,7 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
         stakedRINGOf[msg.sender] -= assets;
     }
 
-    function stakeNFT(address collator, uint256 depositId, address oldPrev, address newPrev) public nonReentrant {
+    function stakeDeposit(address collator, uint256 depositId, address oldPrev, address newPrev) public nonReentrant {
         address account = msg.sender;
         IDeposit(DEPOSIT).transferFrom(account, address(this), depositId);
         uint256 assets = IDeposit(DEPOSIT).assetsOf(depositId);
@@ -112,7 +112,7 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
         require(_stakedDeposits[account].add(depositId), "!add");
     }
 
-    function unstakeNFT(uint256 depositId, address oldPrev, address newPrev) public nonReentrant {
+    function unstakeDeposit(uint256 depositId, address oldPrev, address newPrev) public nonReentrant {
         address account = msg.sender;
         DepositInfo memory info = depositInfos[depositId];
         require(info.account == account);
