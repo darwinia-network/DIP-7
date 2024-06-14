@@ -10,7 +10,7 @@ import {CollatorStakingHub} from "../src/collator/CollatorStakingHub.sol";
 import {Deposit} from "../src/deposit/Deposit.sol";
 import {RingTimelockController} from "../src/governance/RingTimelockController.sol";
 import {GovernanceRing} from "../src/governance/GovernanceRing.sol";
-import {RingDAO, IVotes, TimelockControllerUpgradeable} from "../src/governance/RingDAO.sol";
+import {RingDAO, IVotes, TimelockController} from "../src/governance/RingDAO.sol";
 
 contract DeployScript is Script {
     function setUp() public {}
@@ -45,15 +45,8 @@ contract DeployScript is Script {
         safeconsole.log("gRING: ", gRING);
         safeconsole.log("gRING_Logic: ", Upgrades.getImplementationAddress(gRING));
 
-        address ringDAO = Upgrades.deployTransparentProxy(
-            "RingDAO.sol:RingDAO",
-            timelock,
-            abi.encodeCall(
-                RingDAO.initialize, (IVotes(gRING), TimelockControllerUpgradeable(payable(timelock)), "RingDAO")
-            )
-        );
-        safeconsole.log("RingDAO: ", ringDAO);
-        safeconsole.log("RingDAO_Logic: ", Upgrades.getImplementationAddress(ringDAO));
+		RingDAO ringDAO = new RingDAO(IVotes(gRING), TimelockController(payable(timelock)), "RingDAO");
+        safeconsole.log("RingDAO: ", address(ringDAO));
 
         address hub = Upgrades.deployTransparentProxy(
             "CollatorStakingHub.sol:CollatorStakingHub",
