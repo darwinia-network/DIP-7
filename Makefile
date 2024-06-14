@@ -7,7 +7,8 @@ all    :; @forge build
 fmt    :; @forge fmt
 clean  :; @forge clean
 test   :; @forge test
-deploy :; @forge script script/Deploy.s.sol:DeployScript --chain ${chain-id} --broadcast --verify
+dry-run:; @forge script script/Deploy.s.sol:DeployScript --rpc-url "https://koi-rpc.darwinia.network"
+deploy :; @forge script script/Deploy.s.sol:DeployScript --rpc-url "https://koi-rpc.darwinia.network"  --broadcast
 
 sync   :; @git submodule update --recursive
 

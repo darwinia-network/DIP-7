@@ -26,6 +26,7 @@ contract DeployScript is Script {
             "Deposit.sol:Deposit", multisig, abi.encodeCall(Deposit.initialize, ("RING Deposit NFT", "RDPS"))
         );
         safeconsole.log("Depoist: ", deposit);
+        safeconsole.log("Depoist_Logic: ", Upgrades.getImplementationAddress(deposit));
 
         uint256 minDelay = 3 days;
         address timelock = Upgrades.deployTransparentProxy(
@@ -34,6 +35,7 @@ contract DeployScript is Script {
             abi.encodeCall(RingTimelockController.initialize, (minDelay, new address[](0), new address[](0), multisig))
         );
         safeconsole.log("Timelock: ", timelock);
+        safeconsole.log("Timelock_Logic: ", Upgrades.getImplementationAddress(timelock));
 
         address gRING = Upgrades.deployTransparentProxy(
             "GovernanceRing.sol:GovernanceRing",
@@ -41,6 +43,7 @@ contract DeployScript is Script {
             abi.encodeCall(GovernanceRing.initialize, (multisig, deposit, "Governance RING", "gRING"))
         );
         safeconsole.log("gRING: ", gRING);
+        safeconsole.log("gRING_Logic: ", Upgrades.getImplementationAddress(gRING));
 
         address ringDAO = Upgrades.deployTransparentProxy(
             "RingDAO.sol:RingDAO",
@@ -50,6 +53,7 @@ contract DeployScript is Script {
             )
         );
         safeconsole.log("RingDAO: ", ringDAO);
+        safeconsole.log("RingDAO_Logic: ", Upgrades.getImplementationAddress(ringDAO));
 
         address hub = Upgrades.deployTransparentProxy(
             "CollatorStakingHub.sol:CollatorStakingHub",
@@ -57,6 +61,7 @@ contract DeployScript is Script {
             abi.encodeCall(CollatorStakingHub.initialize, (gRING, deposit))
         );
         safeconsole.log("Hub: ", hub);
+        safeconsole.log("Hub_Logic: ", Upgrades.getImplementationAddress(hub));
 
         // RingTimelockController(timelock).grantRole(RingTimelockController(timelock).PROPOSER_ROLE(), ringDAO);
         // RingTimelockController(gRING).grantRole(GovernanceRing(gRING).MINTER_ROLE(), hub);
