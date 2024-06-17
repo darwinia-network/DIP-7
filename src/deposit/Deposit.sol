@@ -131,7 +131,6 @@ contract Deposit is
         depositOf[id] = DepositInfo({months: months, startAt: startAt, value: uint128(value)});
         _safeMint(account, id);
         gRING.deposit{value: value}();
-        stakedRINGOf[account] += value;
 
         emit DepositMigrated(id, account, value, months, startAt);
     }
@@ -174,7 +173,6 @@ contract Deposit is
         require(interest > 0, "!interest");
         require(KTON.mint(account, interest), "!mint");
         _safeMint(account, id);
-        stakedRINGOf[account] += value;
         gRING.deposit{value: value}();
 
         emit DepositCreated(id, account, value, months, interest);
@@ -203,7 +201,6 @@ contract Deposit is
         require(_requireOwned(id) == account, "!owned");
 
         _burn(id);
-        stakedRINGOf[account] -= value;
         gRING.withdraw(value);
         delete depositOf[id];
         payable(account).sendValue(value);
@@ -218,7 +215,21 @@ contract Deposit is
         override(ERC721Upgradeable, ERC721EnumerableUpgradeable)
         returns (address)
     {
-        return super._update(to, tokenId, auth);
+        address from = super._update(to, tokenId, auth);
+        uint256 assets = assetsOf(tokenId);
+        if (from != address(0)) {
+            stakedRINGOf[from] -= assets;
+            _checkpointRawBalanceOf(from);
+        } else {
+            totalBalanceCheckpoints.push(totalBalanceCheckpoints.latest() + assets);
+        }
+        if (to != address(0)) {
+            stakedRINGOf[to] += assets;
+            _checkpointRawBalanceOf(to);
+        } else {
+            totalBalanceCheckpoints.push(totalBalanceCheckpoints.latest() - assets);
+        }
+        return;
     }
 
     function _increaseBalance(address account, uint128 value)
