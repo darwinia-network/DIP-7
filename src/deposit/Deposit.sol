@@ -7,9 +7,11 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721Enumer
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "flexible-voting/src/FlexVotingClient.sol";
 import "./interfaces/IKTON.sol";
 
 contract Deposit is
+    FlexVotingClient,
     Initializable,
     ERC721Upgradeable,
     ERC721EnumerableUpgradeable,
@@ -30,6 +32,10 @@ contract Deposit is
     }
 
     mapping(uint256 => DepositInfo) public depositOf;
+    // user => staked ring
+    mapping(address => uint256) public stakedRINGOf;
+
+    address public immutable gRING;
 
     uint256 public constant MONTH = 30 days;
     // Deposit Pallet Account
@@ -101,8 +107,12 @@ contract Deposit is
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
-        _disableInitializers();
+    constructor(address governor, address gring) FlexVotingClient(governor) {
+        gRING = gring;
+    }
+
+    function _rawBalanceOf(address _user) internal view override returns (uint224) {
+        return uint224(stakedRINGOf[_user]);
     }
 
     /// @dev Migrate user's deposit from Deposit Pallet to Deposit smart contract.
@@ -120,6 +130,8 @@ contract Deposit is
         uint256 id = _nextTokenId++;
         depositOf[id] = DepositInfo({months: months, startAt: startAt, value: uint128(value)});
         _safeMint(account, id);
+        gRING.deposit{value: value}();
+        stakedRINGOf[account] += value;
 
         emit DepositMigrated(id, account, value, months, startAt);
     }
@@ -162,6 +174,8 @@ contract Deposit is
         require(interest > 0, "!interest");
         require(KTON.mint(account, interest), "!mint");
         _safeMint(account, id);
+        stakedRINGOf[account] += value;
+        gRING.deposit{value: value}();
 
         emit DepositCreated(id, account, value, months, interest);
         return id;
@@ -189,6 +203,8 @@ contract Deposit is
         require(_requireOwned(id) == account, "!owned");
 
         _burn(id);
+        stakedRINGOf[account] -= value;
+        gRING.withdraw(value);
         delete depositOf[id];
         payable(account).sendValue(value);
 

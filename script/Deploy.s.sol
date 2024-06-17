@@ -37,21 +37,16 @@ contract DeployScript is Script {
         safeconsole.log("Timelock: ", timelock);
         safeconsole.log("Timelock_Logic: ", Upgrades.getImplementationAddress(timelock));
 
-        address gRING = Upgrades.deployTransparentProxy(
-            "GovernanceRing.sol:GovernanceRing",
-            timelock,
-            abi.encodeCall(GovernanceRing.initialize, (multisig, deposit, "Governance RING", "gRING"))
-        );
-        safeconsole.log("gRING: ", gRING);
-        safeconsole.log("gRING_Logic: ", Upgrades.getImplementationAddress(gRING));
+        GovernanceRing gRING = new GovernanceRing(multisig, "Governance RING", "gRING");
+        safeconsole.log("gRING: ", address(gRING));
 
-		RingDAO ringDAO = new RingDAO(IVotes(gRING), TimelockController(payable(timelock)), "RingDAO");
+        RingDAO ringDAO = new RingDAO(IVotes(gRING), TimelockController(payable(timelock)), "RingDAO");
         safeconsole.log("RingDAO: ", address(ringDAO));
 
         address hub = Upgrades.deployTransparentProxy(
             "CollatorStakingHub.sol:CollatorStakingHub",
             timelock,
-            abi.encodeCall(CollatorStakingHub.initialize, (gRING, deposit))
+            abi.encodeCall(CollatorStakingHub.initialize, (address(gRING), deposit))
         );
         safeconsole.log("Hub: ", hub);
         safeconsole.log("Hub_Logic: ", Upgrades.getImplementationAddress(hub));

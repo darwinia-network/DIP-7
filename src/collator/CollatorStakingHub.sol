@@ -6,13 +6,14 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import "flexible-voting/src/FlexVotingClient.sol";
 import "./interfaces/INominationPool.sol";
-import "./interfaces/IGRING.sol";
+import "../governance/interfaces/IGRING.sol";
 import "../deposit/interfaces/IDeposit.sol";
 import "./NominationPool.sol";
 import "./CollatorSet.sol";
 
-contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
+contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet, FlexVotingClient {
     using Strings for uint256;
     using Address for address payable;
     using EnumerableSet for EnumerableSet.UintSet;
@@ -42,8 +43,10 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
-        _disableInitializers();
+    constructor(address governor) FlexVotingClient(governor) {}
+
+    function _rawBalanceOf(address _user) internal view override returns (uint224) {
+        return uint224(stakedRINGOf[_user]);
     }
 
     function createNominationPool(address prev, uint256 commission) public returns (address pool) {
