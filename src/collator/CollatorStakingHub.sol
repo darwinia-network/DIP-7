@@ -6,9 +6,9 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import "./interfaces/INominationPool.sol";
-import "./interfaces/IGRING.sol";
+import "../governance/interfaces/IGRING.sol";
 import "../deposit/interfaces/IDeposit.sol";
+import "./interfaces/INominationPool.sol";
 import "./NominationPool.sol";
 import "./CollatorSet.sol";
 
@@ -69,7 +69,6 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
         address pool = poolOf[collator];
         require(pool != address(0), "!collator");
         INominationPool(pool).stake(account, assets);
-        IGRING(gRING).mint(account, assets);
         emit Staked(pool, collator, account, assets);
     }
 
@@ -77,7 +76,6 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
         require(stakingLocks[collator][account] < block.timestamp, "!locked");
         address pool = poolOf[collator];
         require(pool != address(0), "!collator");
-        IGRING(gRING).burn(account, assets);
         INominationPool(pool).withdraw(account, assets);
         emit Unstaked(pool, collator, account, assets);
     }
@@ -92,6 +90,7 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
         _stake(collator, msg.sender, msg.value);
         _increaseVotes(collator, _assetsToVotes(commissionOf[collator], msg.value), oldPrev, newPrev);
         stakedRINGOf[msg.sender] += msg.value;
+        IGRING(gRING).depositFor{value: msg.value}(msg.sender);
     }
 
     function unstakeRING(address collator, uint256 assets, address oldPrev, address newPrev) public nonReentrant {
@@ -99,6 +98,7 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
         payable(msg.sender).sendValue(assets);
         _reduceVotes(collator, _assetsToVotes(commissionOf[collator], assets), oldPrev, newPrev);
         stakedRINGOf[msg.sender] -= assets;
+        IGRING(gRING).withdrawTo(msg.sender, assets);
     }
 
     function stakeDeposit(address collator, uint256 depositId, address oldPrev, address newPrev) public nonReentrant {
@@ -110,6 +110,8 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
         _stake(collator, account, assets);
         _increaseVotes(collator, _assetsToVotes(commissionOf[collator], assets), oldPrev, newPrev);
         require(_stakedDeposits[account].add(depositId), "!add");
+        IDeposit(DEPOSIT).lock(depositId);
+        IGRING(gRING).transferFrom(address(this), account, assets);
     }
 
     function unstakeDeposit(uint256 depositId, address oldPrev, address newPrev) public nonReentrant {
@@ -122,6 +124,9 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
         _unstake(info.collator, info.account, info.assets);
         _reduceVotes(info.collator, _assetsToVotes(commissionOf[info.collator], info.assets), oldPrev, newPrev);
         require(_stakedDeposits[account].remove(depositId), "!remove");
+        IGRING(gRING).transferFrom(account, address(this), info.assets);
+        IDeposit(DEPOSIT).unlock(depositId);
+        payable(account).sendValue(info.assets);
     }
 
     function collect(uint256 commission, address oldPrev, address newPrev) public nonReentrant {
