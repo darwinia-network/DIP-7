@@ -7,7 +7,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721Enumer
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "../governance/interfaces/IGRING.sol";
 import "./interfaces/IKTON.sol";
 
 contract Deposit is
@@ -23,8 +22,6 @@ contract Deposit is
     // precision = 10_000
     uint256[37] public INTERESTS;
     uint256 private _nextTokenId;
-    // Governance RING
-    IGRING public gRING;
 
     struct DepositInfo {
         uint64 months;
@@ -33,7 +30,6 @@ contract Deposit is
     }
 
     mapping(uint256 => DepositInfo) public depositOf;
-    mapping(uint256 => address) public stakedOf;
 
     uint256 public constant MONTH = 30 days;
     // Deposit Pallet Account
@@ -48,16 +44,13 @@ contract Deposit is
     );
     event DepositClaimed(uint256 indexed depositId, address indexed account, uint256 value);
     event ClaimWithPenalty(uint256 indexed depositId, address indexed account, uint256 penalty);
-    event Lock(uint256 indexed depositId, address sender);
-    event UnLock(uint256 indexed depositId, address sender);
 
     modifier onlySystem() {
         require(msg.sender == DEPOSIT_PALLET);
         _;
     }
 
-    function initialize(address gring, string memory name, string memory symbol) public initializer {
-        gRING = IGRING(gring);
+    function initialize(string memory name, string memory symbol) public initializer {
         __DepositInterest_init();
         __ERC721_init(name, symbol);
         __ERC721Enumerable_init();
@@ -112,8 +105,6 @@ contract Deposit is
         _disableInitializers();
     }
 
-    receive() external payable {}
-
     /// @dev Migrate user's deposit from Deposit Pallet to Deposit smart contract.
     ///      The amount of the deposit value must be passed in via msg.value.
     /// @notice Only Deposit Pallet Account could call this function.
@@ -153,25 +144,6 @@ contract Deposit is
         _claim(msg.sender, depositId, info.value);
 
         emit ClaimWithPenalty(depositId, msg.sender, penalty);
-    }
-
-    function lock(uint256 depositId) public nonReentrant {
-        address sender = msg.sender;
-        transferFrom(sender, address(this), depositId);
-        stakedOf[depositId] = sender;
-        uint256 assets = assetsOf(depositId);
-        gRING.depositFor{value: assets}(sender);
-        emit Lock(sender, depositId);
-    }
-
-    function unlock(uint256 depositId) public nonReentrant {
-        address sender = msg.sender;
-        require(stakedOf[depositId] == sender, "!auth");
-        transferFrom(address(this), sender, depositId);
-        delete stakedOf[depositId];
-        uint256 assets = assetsOf(depositId);
-        gRING.withdrawTo(sender, assets);
-        emit UnLock(sender, depositId);
     }
 
     function assetsOf(uint256 id) public view returns (uint256) {
