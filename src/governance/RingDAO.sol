@@ -26,7 +26,7 @@ contract RingDAO is
         initializer
     {
         __Governor_init(name);
-        __GovernorSettings_init(1 days, 1 weeks, 1_000_000 * 1e18);
+        __GovernorSettings_init(1 days, 2 weeks, 1_000_000 * 1e18);
         __GovernorCountingSimple_init();
         __GovernorVotes_init(_token);
         __GovernorTimelockControl_init(_timelock);
