@@ -79,8 +79,9 @@ contract DepositTest is Test, ERC721Holder {
         for (uint256 m = 1; m < 37; m++) {
             uint256 interest = Deposit(deposit).INTERESTS(m);
 
-            safeconsole.log(_computeInterest(UNIT, m));
-            // assertEq(Deposit(deposit).computeInterest(UNIT, m), _computeInterest(UNIT, m));
+            // safeconsole.log(_computeInterest(UNIT, m));
+            // safeconsole.log(Deposit(deposit).computeInterest(UNIT, m));
+            assertEq(Deposit(deposit).computeInterest(UNIT, m) / 10000000000, _computeInterest(UNIT, m) / 10000000000);
         }
     }
 
