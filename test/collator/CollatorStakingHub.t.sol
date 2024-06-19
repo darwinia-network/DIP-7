@@ -70,6 +70,28 @@ contract CollatorStakingHubTest is Test {
         assertEq(hub.stakedOf(charleth), 0);
     }
 
+    function test_collect() public {
+        vm.prank(alith);
+        address a = hub.createNominationPool(HEAD, 1);
+
+        vm.prank(alith);
+        vm.expectRevert(bytes("same"));
+        hub.collect(1, HEAD, HEAD);
+
+        vm.prank(alith);
+        hub.collect(2, HEAD, HEAD);
+        assertEq(hub.commissionOf(alith), 2);
+
+        vm.prank(alith);
+        vm.expectRevert("!locked");
+        hub.collect(3, HEAD, HEAD);
+
+        vm.warp(block.timestamp + hub.COMMISSION_LOCK_PERIOD() + 1);
+        vm.prank(alith);
+        hub.collect(3, HEAD, HEAD);
+        assertEq(hub.commissionOf(alith), 3);
+    }
+
     function test_stakeRING() public {
         uint256 stake = 1 ether;
         vm.prank(alith);
@@ -78,7 +100,7 @@ contract CollatorStakingHubTest is Test {
         vm.deal(alice, stake);
         vm.prank(alice);
         hub.stakeRING{value: stake}(alith, HEAD, HEAD);
-        assertEq(hub.stakedRINGOf(alice), stake);
+        assertEq(hub.stakedRINGOf(alith, alice), stake);
         assertEq(NominationPool(a).balanceOf(alice), stake);
         assertEq(hub.votesOf(alith), stake * (100 - commissoin) / 100);
         assertEq(hub.stakedOf(alith), stake);
@@ -117,9 +139,9 @@ contract CollatorStakingHubTest is Test {
         vm.deal(alice, stake);
         vm.prank(alice);
         hub.stakeRING{value: stake}(alith, HEAD, HEAD);
-        assertEq(hub.stakingLocks(alith, alice), hub.LOCK_PERIOD() + block.timestamp);
+        assertEq(hub.stakingLocks(alith, alice), hub.STAKING_LOCK_PERIOD() + block.timestamp);
 
-        vm.warp(block.timestamp + hub.LOCK_PERIOD() + 1);
+        vm.warp(block.timestamp + hub.STAKING_LOCK_PERIOD() + 1);
 
         vm.prank(alice);
         hub.unstakeRING(alith, stake, HEAD, HEAD);
@@ -142,7 +164,7 @@ contract CollatorStakingHubTest is Test {
         Deposit(deposit).approve(address(hub), id);
         vm.prank(alice);
         hub.stakeDeposit(alith, id, HEAD, HEAD);
-        assertEq(hub.stakingLocks(alith, alice), hub.LOCK_PERIOD() + block.timestamp);
+        assertEq(hub.stakingLocks(alith, alice), hub.STAKING_LOCK_PERIOD() + block.timestamp);
         (address account, uint256 assets, address collator) = hub.depositInfos(id);
         assertEq(account, alice);
         assertEq(assets, stake);
@@ -174,7 +196,7 @@ contract CollatorStakingHubTest is Test {
         vm.prank(alice);
         hub.stakeDeposit(alith, id, HEAD, HEAD);
 
-        vm.warp(block.timestamp + hub.LOCK_PERIOD() + 1);
+        vm.warp(block.timestamp + hub.STAKING_LOCK_PERIOD() + 1);
 
         vm.prank(alice);
         hub.unstakeDeposit(id, HEAD, HEAD);

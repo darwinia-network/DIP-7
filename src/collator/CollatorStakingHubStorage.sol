@@ -23,8 +23,10 @@ contract CollatorStakingHubStorage {
     mapping(address => uint256) public commissionOf;
     // collator => user => lockTime
     mapping(address => mapping(address => uint256)) public stakingLocks;
-    // user => staked ring
-    mapping(address => uint256) public stakedRINGOf;
+    // collator => lockTime
+    mapping(address => uint256) public commissionLocks;
+    // user => collaotr => staked ring
+    mapping(address => mapping(address => uint256)) public stakedRINGOf;
     // user => staked depositIds
     mapping(address => EnumerableSet.UintSet) internal _stakedDeposits;
 
