@@ -44,7 +44,7 @@ contract DepositTest is Test, ERC721Holder {
         assertEq(IERC721Enumerable(deposit).tokenOfOwnerByIndex(self, 0), id);
         assertEq(IERC721Enumerable(deposit).tokenByIndex(0), id);
         assertEq(IERC721Enumerable(deposit).totalSupply(), 1);
-        assertEq(IERC20(KTON).balanceOf(self), 7.61e16);
+        assertEq(IERC20(KTON).balanceOf(self), 7.61e12);
         assertEq(Deposit(deposit).assetsOf(id), 1 ether);
         assertEq(Deposit(deposit).isClaimRequirePenalty(id), true);
     }
