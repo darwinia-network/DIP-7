@@ -32,6 +32,9 @@ jobs:
         with:
           version: nightly
 
+      - name: Install Dependencies
+        run: yarn --frozen-lockfile
+
       - name: Run Forge build
         run: |
           forge --version
