@@ -22,8 +22,8 @@ contract RingDAO is
     }
 
     function initialize(
-        IVotes _token,
-        TimelockControllerUpgradeable _timelock,
+        IVotes token,
+        TimelockControllerUpgradeable timelock,
         uint48 initialVotingDelay,
         uint32 initialVotingPeriod,
         uint256 initialProposalThreshold,
@@ -32,8 +32,8 @@ contract RingDAO is
         __Governor_init(name);
         __GovernorSettings_init(initialVotingDelay, initialVotingPeriod, initialProposalThreshold);
         __GovernorCountingSimple_init();
-        __GovernorVotes_init(_token);
-        __GovernorTimelockControl_init(_timelock);
+        __GovernorVotes_init(token);
+        __GovernorTimelockControl_init(timelock);
     }
 
     // The following functions are overrides required by Solidity.
