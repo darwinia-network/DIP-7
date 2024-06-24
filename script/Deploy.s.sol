@@ -49,7 +49,15 @@ contract DeployScript is Script {
             "RingDAO.sol:RingDAO",
             timelock,
             abi.encodeCall(
-                RingDAO.initialize, (IVotes(gRING), TimelockControllerUpgradeable(payable(timelock)), "RingDAO")
+                RingDAO.initialize,
+                (
+                    IVotes(gRING),
+                    TimelockControllerUpgradeable(payable(timelock)),
+                    1 days,
+                    30 days,
+                    1_000_000 * 1e18,
+                    "RingDAO"
+                )
             )
         );
         safeconsole.log("RingDAO: ", ringDAO);
