@@ -76,14 +76,14 @@ contract NominationPool {
 
     function stake(address account, uint256 amount) external onlyHub updateReward(account) {
         require(amount > 0, "Cannot stake 0");
-        _totalSupply = _totalSupply + amount;
+        _totalSupply += amount;
         _balances[account] += amount;
         emit Staked(account, amount);
     }
 
     function withdraw(address account, uint256 amount) public onlyHub updateReward(account) {
         require(amount > 0, "Cannot withdraw 0");
-        _totalSupply = _totalSupply - amount;
+        _totalSupply -= amount;
         _balances[account] -= amount;
         emit Withdrawn(account, amount);
     }

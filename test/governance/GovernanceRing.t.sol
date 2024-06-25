@@ -25,11 +25,9 @@ contract GovernanceRingTest is Test {
             Upgrades.deployTransparentProxy(
                 "GovernanceRing.sol:GovernanceRing",
                 msg.sender,
-                abi.encodeCall(GovernanceRing.initialize, (self, deposit, name, symbol))
+                abi.encodeCall(GovernanceRing.initialize, (self, self, deposit, name, symbol))
             )
         );
-        gRING.grantRole(gRING.MINTER_ROLE(), self);
-        gRING.grantRole(gRING.BURNER_ROLE(), self);
     }
 
     function test_initialize() public view {

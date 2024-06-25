@@ -40,7 +40,10 @@ contract GovernanceRing is
     event WrapDeposit(address indexed account, address indexed token, uint256 depositId);
     event UnwrapDeposit(address indexed account, address indexed token, uint256 depositId);
 
-    function initialize(address admin, address dps, string memory name, string memory symbol) public initializer {
+    function initialize(address admin, address hub, address dps, string memory name, string memory symbol)
+        public
+        initializer
+    {
         DEPOSIT = IDeposit(dps);
         __ERC20_init(name, symbol);
         __AccessControlEnumerable_init();
@@ -49,6 +52,9 @@ contract GovernanceRing is
         __ReentrancyGuard_init();
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
+
+        _grantRole(MINTER_ROLE, hub);
+        _grantRole(BURNER_ROLE, hub);
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor

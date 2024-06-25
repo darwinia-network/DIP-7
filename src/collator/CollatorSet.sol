@@ -45,7 +45,7 @@ abstract contract CollatorSet is Initializable, CollatorStakingHubStorage {
         address next = collators[prev];
         // No duplicate collator allowed.
         require(collators[cur] == address(0), "!cur");
-        // Next collaotr must in the list.
+        // Next collator must in the list.
         require(next != address(0), "!prev");
         require(_verifyIndex(prev, votes, next), "!votes");
         collators[cur] = next;
@@ -77,10 +77,10 @@ abstract contract CollatorSet is Initializable, CollatorStakingHubStorage {
     function _updateVotes(address cur, uint256 newVotes, address oldPrev, address newPrev) internal {
         require(_isValid(cur), "!valid");
         require(collators[cur] != address(0), "!cur");
-        require(collators[oldPrev] != address(0), "!oldPrev");
+        require(collators[oldPrev] != address(0), "!oldPrev1");
         require(collators[newPrev] != address(0), "!newPrev");
         if (oldPrev == newPrev) {
-            require(_isPrevCollator(cur, oldPrev), "!oldPrev");
+            require(_isPrevCollator(cur, oldPrev), "!oldPrev2");
             require(_verifyIndex(newPrev, newVotes, collators[cur]), "!votes");
             votesOf[cur] = newVotes;
         } else {

@@ -169,7 +169,7 @@ contract Deposit is
 
     function computeInterest(uint256 value, uint256 months) public view returns (uint256) {
         uint256 interest = INTERESTS[months];
-        return value * interest / 10_000;
+        return value * interest / 10_000 / 10_000;
     }
 
     function isClaimRequirePenalty(uint256 id) public view returns (bool) {

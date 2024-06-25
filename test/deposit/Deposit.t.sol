@@ -38,11 +38,13 @@ contract DepositTest is Test, ERC721Holder {
         uint256 id = Deposit(deposit).deposit{value: 1 ether}(1);
         assertEq(IERC721(deposit).balanceOf(self), 1);
         assertEq(IERC721(deposit).ownerOf(id), self);
-        assertEq(IERC721Metadata(deposit).tokenURI(id), "");
+        assertEq(
+            IERC721Metadata(deposit).tokenURI(id), "ipfs://bafybeih57kauz6npkbafh2x3cv3hyljcakdccuckb4huwnwxxxrtqr5pqe"
+        );
         assertEq(IERC721Enumerable(deposit).tokenOfOwnerByIndex(self, 0), id);
         assertEq(IERC721Enumerable(deposit).tokenByIndex(0), id);
         assertEq(IERC721Enumerable(deposit).totalSupply(), 1);
-        assertEq(IERC20(KTON).balanceOf(self), 7.61e16);
+        assertEq(IERC20(KTON).balanceOf(self), 7.61e12);
         assertEq(Deposit(deposit).assetsOf(id), 1 ether);
         assertEq(Deposit(deposit).isClaimRequirePenalty(id), true);
     }
@@ -77,8 +79,9 @@ contract DepositTest is Test, ERC721Holder {
         for (uint256 m = 1; m < 37; m++) {
             uint256 interest = Deposit(deposit).INTERESTS(m);
 
-            safeconsole.log(_computeInterest(UNIT, m));
-            // assertEq(Deposit(deposit).computeInterest(UNIT, m), _computeInterest(UNIT, m));
+            // safeconsole.log(_computeInterest(UNIT, m));
+            // safeconsole.log(Deposit(deposit).computeInterest(UNIT, m));
+            assertEq(Deposit(deposit).computeInterest(UNIT, m) / 10000000000, _computeInterest(UNIT, m) / 10000000000);
         }
     }
 
