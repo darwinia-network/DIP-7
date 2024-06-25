@@ -62,7 +62,7 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
 
         poolOf[collator] = pool;
         _addCollator(collator, 0, prev);
-        _collect(collator, commission);
+        _collate(collator, commission);
         emit NominationPoolCreated(pool, collator, prev);
     }
 
@@ -126,13 +126,13 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
         require(_stakedDeposits[account].remove(depositId), "!remove");
     }
 
-    function collect(uint256 commission, address oldPrev, address newPrev) public nonReentrant {
+    function collate(uint256 commission, address oldPrev, address newPrev) public nonReentrant {
         address collator = msg.sender;
         require(poolOf[collator] != address(0), "!collator");
         require(commissionLocks[collator] < block.timestamp, "!locked");
         require(commissionOf[collator] != commission, "same");
         _removeCollator(collator, oldPrev);
-        _collect(collator, commission);
+        _collate(collator, commission);
         _addCollator(collator, _assetsToVotes(commission, stakedOf(collator)), newPrev);
         commissionLocks[collator] = COMMISSION_LOCK_PERIOD + block.timestamp;
     }
@@ -156,7 +156,7 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
         return INominationPool(pool).totalSupply();
     }
 
-    function _collect(address collator, uint256 commission) internal {
+    function _collate(address collator, uint256 commission) internal {
         require(commission <= COMMISSION_BASE, "!commission");
         commissionOf[collator] = commission;
         emit CommissionUpdated(collator, commission);

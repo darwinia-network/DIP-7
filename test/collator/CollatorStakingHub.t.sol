@@ -76,19 +76,19 @@ contract CollatorStakingHubTest is Test {
 
         vm.prank(alith);
         vm.expectRevert(bytes("same"));
-        hub.collect(1, HEAD, HEAD);
+        hub.collate(1, HEAD, HEAD);
 
         vm.prank(alith);
-        hub.collect(2, HEAD, HEAD);
+        hub.collate(2, HEAD, HEAD);
         assertEq(hub.commissionOf(alith), 2);
 
         vm.prank(alith);
         vm.expectRevert("!locked");
-        hub.collect(3, HEAD, HEAD);
+        hub.collate(3, HEAD, HEAD);
 
         vm.warp(block.timestamp + hub.COMMISSION_LOCK_PERIOD() + 1);
         vm.prank(alith);
-        hub.collect(3, HEAD, HEAD);
+        hub.collate(3, HEAD, HEAD);
         assertEq(hub.commissionOf(alith), 3);
     }
 
