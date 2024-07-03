@@ -18,7 +18,9 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
     using EnumerableSet for EnumerableSet.UintSet;
 
     // The lock-up period starts with the stake or inscrease stake.
-    uint256 public constant LOCK_PERIOD = 1 days;
+    uint256 public constant STAKING_LOCK_PERIOD = 1 days;
+    // The lock-up period starts with the collator commsission update;
+    uint256 public constant COMMISSION_LOCK_PERIOD = 7 days;
     // Staking Pallet Account.
     address public constant STAKING_PALLET = 0x6D6F646C64612f7374616B690000000000000000;
     // 0 ~ 100
@@ -60,12 +62,12 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
 
         poolOf[collator] = pool;
         _addCollator(collator, 0, prev);
-        _collect(collator, commission);
+        _collate(collator, commission);
         emit NominationPoolCreated(pool, collator, prev);
     }
 
     function _stake(address collator, address account, uint256 assets) internal {
-        stakingLocks[collator][account] = LOCK_PERIOD + block.timestamp;
+        stakingLocks[collator][account] = STAKING_LOCK_PERIOD + block.timestamp;
         address pool = poolOf[collator];
         require(pool != address(0), "!collator");
         INominationPool(pool).stake(account, assets);
@@ -91,14 +93,14 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
     function stakeRING(address collator, address oldPrev, address newPrev) public payable nonReentrant {
         _stake(collator, msg.sender, msg.value);
         _increaseVotes(collator, _assetsToVotes(commissionOf[collator], msg.value), oldPrev, newPrev);
-        stakedRINGOf[msg.sender] += msg.value;
+        stakedRINGOf[collator][msg.sender] += msg.value;
     }
 
     function unstakeRING(address collator, uint256 assets, address oldPrev, address newPrev) public nonReentrant {
         _unstake(collator, msg.sender, assets);
         payable(msg.sender).sendValue(assets);
         _reduceVotes(collator, _assetsToVotes(commissionOf[collator], assets), oldPrev, newPrev);
-        stakedRINGOf[msg.sender] -= assets;
+        stakedRINGOf[collator][msg.sender] -= assets;
     }
 
     function stakeDeposit(address collator, uint256 depositId, address oldPrev, address newPrev) public nonReentrant {
@@ -124,12 +126,15 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
         require(_stakedDeposits[account].remove(depositId), "!remove");
     }
 
-    function collect(uint256 commission, address oldPrev, address newPrev) public nonReentrant {
+    function collate(uint256 commission, address oldPrev, address newPrev) public nonReentrant {
         address collator = msg.sender;
         require(poolOf[collator] != address(0), "!collator");
+        require(commissionLocks[collator] < block.timestamp, "!locked");
+        require(commissionOf[collator] != commission, "same");
         _removeCollator(collator, oldPrev);
-        _collect(collator, commission);
+        _collate(collator, commission);
         _addCollator(collator, _assetsToVotes(commission, stakedOf(collator)), newPrev);
+        commissionLocks[collator] = COMMISSION_LOCK_PERIOD + block.timestamp;
     }
 
     /// @dev Distribute collator reward from Staking Pallet Account.
@@ -151,8 +156,8 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
         return INominationPool(pool).totalSupply();
     }
 
-    function _collect(address collator, uint256 commission) internal {
-        require(commission <= COMMISSION_BASE);
+    function _collate(address collator, uint256 commission) internal {
+        require(commission <= COMMISSION_BASE, "!commission");
         commissionOf[collator] = commission;
         emit CommissionUpdated(collator, commission);
     }
