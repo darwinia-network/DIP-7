@@ -9,11 +9,16 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PermitUp
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/governance/utils/IVotes.sol";
 import "../deposit/interfaces/IDeposit.sol";
+import "./interfaces/IERC20Mintable.sol";
+import "./interfaces/IERC20Burnable.sol";
 
 contract GovernanceRing is
     Initializable,
+    ERC165Upgradeable,
     ERC20Upgradeable,
     AccessControlEnumerableUpgradeable,
     ERC20PermitUpgradeable,
@@ -49,6 +54,7 @@ contract GovernanceRing is
         __AccessControlEnumerable_init();
         __ERC20Permit_init(symbol);
         __ERC20Votes_init();
+        __ERC165_init();
         __ReentrancyGuard_init();
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
@@ -60,6 +66,19 @@ contract GovernanceRing is
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
+    }
+
+    function supportsInterface(bytes4 _interfaceId)
+        public
+        view
+        virtual
+        override(ERC165Upgradeable, AccessControlEnumerableUpgradeable)
+        returns (bool)
+    {
+        return _interfaceId == type(IERC20).interfaceId || _interfaceId == type(IERC20Permit).interfaceId
+            || _interfaceId == type(IERC20Metadata).interfaceId || _interfaceId == type(IVotes).interfaceId
+            || _interfaceId == type(IERC20Mintable).interfaceId || _interfaceId == type(IERC20Burnable).interfaceId
+            || super.supportsInterface(_interfaceId);
     }
 
     function mint(address to, uint256 assets) public onlyRole(MINTER_ROLE) {
