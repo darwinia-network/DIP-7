@@ -36,12 +36,12 @@ contract DeployScript is Script {
 
         uint256 minDelay = 3 days;
 
-        address[] memory proposers = new address[](1);
-        proposers[0] = ringDAO;
+        address[] memory roles = new address[](1);
+        roles[0] = ringDAO;
         address timelock_PROXY = Upgrades.deployTransparentProxy(
             "RingTimelockController.sol:RingTimelockController",
             multisig,
-            abi.encodeCall(RingTimelockController.initialize, (minDelay, proposers, new address[](0), multisig))
+            abi.encodeCall(RingTimelockController.initialize, (minDelay, roles, new address[](0), multisig))
         );
         safeconsole.log("Timelock: ", timelock_PROXY);
         safeconsole.log("Timelock_Logic: ", Upgrades.getImplementationAddress(timelock_PROXY));
