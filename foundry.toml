@@ -2,7 +2,7 @@
 src = "src"
 out = "out"
 libs = ["lib"]
-sender = "0xb34Fcb159951e6EBBeF063eCB21C1c6aa65729E7"
+sender = "0xef7cF64Ab57bA5be62FD75e6dca48D8997e0A4Dd"
 force = true
 ffi = true
 ast = true
