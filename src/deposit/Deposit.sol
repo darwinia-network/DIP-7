@@ -32,8 +32,8 @@ contract Deposit is
     mapping(uint256 => DepositInfo) public depositOf;
 
     uint256 public constant MONTH = 30 days;
-    // Deposit Pallet Account
-    address public constant DEPOSIT_PALLET = 0x6d6F646C6461722F6465706F0000000000000000;
+    // System Account.
+    address public constant SYSTEM_PALLET = 0x6D6f646c64612f74727372790000000000000000;
     IKTON public constant KTON = IKTON(0x0000000000000000000000000000000000000402);
 
     event DepositCreated(
@@ -46,7 +46,7 @@ contract Deposit is
     event ClaimWithPenalty(uint256 indexed depositId, address indexed account, uint256 penalty);
 
     modifier onlySystem() {
-        require(msg.sender == DEPOSIT_PALLET);
+        require(msg.sender == SYSTEM_PALLET);
         _;
     }
 

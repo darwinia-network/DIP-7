@@ -21,8 +21,8 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
     uint256 public constant STAKING_LOCK_PERIOD = 1 days;
     // The lock-up period starts with the collator commsission update;
     uint256 public constant COMMISSION_LOCK_PERIOD = 7 days;
-    // Staking Pallet Account.
-    address public constant STAKING_PALLET = 0x6D6F646C64612f7374616B690000000000000000;
+    // System Account.
+    address public constant SYSTEM_PALLET = 0x6D6f646c64612f74727372790000000000000000;
     // 0 ~ 100
     uint256 private constant COMMISSION_BASE = 100;
 
@@ -32,7 +32,7 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
     event CommissionUpdated(address indexed collator, uint256 commission);
 
     modifier onlySystem() {
-        require(msg.sender == STAKING_PALLET, "!system");
+        require(msg.sender == SYSTEM_PALLET, "!system");
         _;
     }
 

@@ -118,8 +118,8 @@ contract CollatorStakingHubTest is Test {
         hub.stakeRING{value: stake}(alith, HEAD, HEAD);
 
         uint256 reward = 100 ether;
-        vm.deal(hub.STAKING_PALLET(), reward);
-        vm.prank(hub.STAKING_PALLET());
+        vm.deal(hub.SYSTEM_PALLET(), reward);
+        vm.prank(hub.SYSTEM_PALLET());
         hub.distributeReward{value: reward}(alith);
 
         vm.warp(NominationPool(a).periodFinish() + 1);

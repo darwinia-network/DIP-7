@@ -13,11 +13,11 @@ import {GovernanceRing} from "../src/governance/GovernanceRing.sol";
 import {RingDAO, IVotes, TimelockControllerUpgradeable} from "../src/governance/RingDAO.sol";
 
 contract DeployScript is Script {
-    address deposit = 0x0634cf1c19Ce993A468Fa7c362208141C854736c;
-    address timelock = 0xDAE15e7DA1C998a650796541DF6fFEB437cC20E4;
-    address gRING = 0x4Ef76E24851f694BEe6a64F6345b873081d4F308;
-    address ringDAO = 0x3aaF69F34AA8527b4CEe546DD691aD24c1fB7AEa;
-    address hub = 0xD497EF1C7A8732e0761d57429Df5edc17fEaD6e6;
+    address deposit = 0x62130A55e7d0cccAF5c297dD5F9d42BbEA0F83Bb;
+    address timelock = 0x1d0B17F78c2FC5cB0b36F0F0182d1E2DD6dDA960;
+    address gRING = 0xe59B1124d36B51C42D5d66C5F5a9Be92aE1Ce204;
+    address ringDAO = 0x2f59113acbEC17FC1eC9e01F1B50836e32cA42f7;
+    address hub = 0x9F95944fcC9557F3bA228a6509aFe0C5DB756d24;
 
     function setUp() public {}
 
