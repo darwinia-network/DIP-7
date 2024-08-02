@@ -23,6 +23,12 @@ contract Deposit is
     uint256[37] public INTERESTS;
     uint256 private _nextTokenId;
 
+    struct PalletInfo {
+        uint128 value;
+        uint64 startAt;
+        uint64 expiredAt;
+    }
+
     struct DepositInfo {
         uint64 months;
         uint64 startAt;
@@ -39,9 +45,7 @@ contract Deposit is
     event DepositCreated(
         uint256 indexed depositId, address indexed account, uint256 value, uint256 months, uint256 interest
     );
-    event DepositMigrated(
-        uint256 indexed depositId, address indexed account, uint256 value, uint256 months, uint256 startAt
-    );
+    event DepositMigrated(address account, uint256[] depositIds, PalletInfo[] deposits);
     event DepositClaimed(uint256 indexed depositId, address indexed account, uint256 value);
     event ClaimWithPenalty(uint256 indexed depositId, address indexed account, uint256 penalty);
 
@@ -105,23 +109,31 @@ contract Deposit is
         _disableInitializers();
     }
 
-    /// @dev Migrate user's deposit from Deposit Pallet to Deposit smart contract.
-    ///      The amount of the deposit value must be passed in via msg.value.
-    /// @notice Only Deposit Pallet Account could call this function.
+    /// @dev Migrate user's deposits from Deposit Pallet to Deposit smart contract.
+    ///      The total amount of the deposit value must be passed in via msg.value.
+    /// @notice Only System Pallet Account could call this function.
     /// @param account The user account address stored in Deposit Pallet.
-    /// @param months The user deposit months stored in Deposit Pallet.
-    /// @param startAt The user deposit start time stored in Deposit Pallet.
-    function migrate(address account, uint64 months, uint64 startAt) external payable onlySystem nonReentrant {
-        uint256 value = msg.value;
-        require(value > 0 && value < type(uint128).max, "!value");
-        require(months <= 36 && months >= 1, "!months");
-        require(startAt <= block.timestamp, "!startAt");
+    /// @param deposits The deposits to migrate.
+    function migrate(address account, PalletInfo[] calldata deposits) external payable onlySystem nonReentrant {
+        uint256 len = deposits.length;
+        require(len > 0, "!deposits");
+        uint256 totalValue;
+        uint256[] memory ids = new uint256[](len);
+        for (uint256 i = 0; i < len; i++) {
+            PalletInfo memory info = deposits[i];
+            require(info.value > 0, "!value");
+            uint64 months = (info.expiredAt - info.startAt) / uint64(MONTH);
+            require(months <= 36 && months >= 1, "!months");
+            require(info.startAt <= block.timestamp, "!startAt");
 
-        uint256 id = _nextTokenId++;
-        depositOf[id] = DepositInfo({months: months, startAt: startAt, value: uint128(value)});
-        _safeMint(account, id);
-
-        emit DepositMigrated(id, account, value, months, startAt);
+            uint256 id = _nextTokenId++;
+            depositOf[id] = DepositInfo({months: months, startAt: info.startAt, value: info.value});
+            _safeMint(account, id);
+            ids[i] = id;
+            totalValue += info.value;
+        }
+        require(totalValue == msg.value, "!totalValue");
+        emit DepositMigrated(account, ids, deposits);
     }
 
     function deposit(uint64 months) external payable nonReentrant returns (uint256) {
