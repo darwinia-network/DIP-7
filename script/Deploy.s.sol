@@ -12,9 +12,9 @@ import {GovernanceRing} from "../src/governance/GovernanceRing.sol";
 
 contract DeployScript is Script {
     address deployer = 0x0f14341A7f464320319025540E8Fe48Ad0fe5aec;
-    address deposit = 0x74aA3559BBBB1C4D1395024f105A3309247D4419;
-    address gRING = 0xF6ffE57fB0580A0B3cC76BD6aEd579463201a8a1;
-    address hub = 0x4B2cB0F18DEF041940Ec78C71DA1B73F2d984254;
+    address deposit = 0x7FAcDaFB282028E4B3264fB08cd633A9142514df;
+    address gRING = 0x87BD07263D0Ed5687407B80FEB16F2E32C2BA44f;
+    address hub = 0x279a1aaDb6eC9d213350f95C3Da1A9580FB3326B;
 
     function setUp() public {}
 
