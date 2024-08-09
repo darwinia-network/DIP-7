@@ -8,73 +8,38 @@ import {Options} from "openzeppelin-foundry-upgrades/Options.sol";
 
 import {CollatorStakingHub} from "../src/collator/CollatorStakingHub.sol";
 import {Deposit} from "../src/deposit/Deposit.sol";
-import {RingTimelockController} from "../src/governance/RingTimelockController.sol";
 import {GovernanceRing} from "../src/governance/GovernanceRing.sol";
-import {RingDAO, IVotes, TimelockControllerUpgradeable} from "../src/governance/RingDAO.sol";
 
 contract DeployScript is Script {
-    address deposit = 0x62130A55e7d0cccAF5c297dD5F9d42BbEA0F83Bb;
-    address timelock = 0x1d0B17F78c2FC5cB0b36F0F0182d1E2DD6dDA960;
-    address gRING = 0xe59B1124d36B51C42D5d66C5F5a9Be92aE1Ce204;
-    address ringDAO = 0x2f59113acbEC17FC1eC9e01F1B50836e32cA42f7;
-    address hub = 0x9F95944fcC9557F3bA228a6509aFe0C5DB756d24;
+    address deployer = 0x0f14341A7f464320319025540E8Fe48Ad0fe5aec;
+    address deposit = 0x7FAcDaFB282028E4B3264fB08cd633A9142514df;
+    address gRING = 0x87BD07263D0Ed5687407B80FEB16F2E32C2BA44f;
+    address hub = 0x279a1aaDb6eC9d213350f95C3Da1A9580FB3326B;
 
     function setUp() public {}
 
     function run() public {
         vm.startBroadcast();
 
-        // RingDAO-multisig
-        address multisig = 0x040f331774Ed6BB161412B4cEDb1358B382aF3A5;
-        safeconsole.log("Multisig: ", multisig);
+        require(msg.sender == deployer, "!deployer");
 
         address deposit_PROXY = Upgrades.deployTransparentProxy(
-            "Deposit.sol:Deposit", multisig, abi.encodeCall(Deposit.initialize, ("RING Deposit NFT", "RDPS"))
+            "Deposit.sol:Deposit", deployer, abi.encodeCall(Deposit.initialize, ("RING Deposit NFT", "RDPS"))
         );
         safeconsole.log("Depoist: ", deposit_PROXY);
         safeconsole.log("Depoist_Logic: ", Upgrades.getImplementationAddress(deposit_PROXY));
 
-        uint256 minDelay = 3 days;
-
-        address[] memory roles = new address[](1);
-        roles[0] = ringDAO;
-        address timelock_PROXY = Upgrades.deployTransparentProxy(
-            "RingTimelockController.sol:RingTimelockController",
-            multisig,
-            abi.encodeCall(RingTimelockController.initialize, (minDelay, roles, new address[](0), multisig))
-        );
-        safeconsole.log("Timelock: ", timelock_PROXY);
-        safeconsole.log("Timelock_Logic: ", Upgrades.getImplementationAddress(timelock_PROXY));
-
         address gRING_PROXY = Upgrades.deployTransparentProxy(
             "GovernanceRing.sol:GovernanceRing",
-            timelock,
-            abi.encodeCall(GovernanceRing.initialize, (multisig, hub, deposit, "Governance RING", "gRING"))
+            deployer,
+            abi.encodeCall(GovernanceRing.initialize, (deployer, hub, deposit, "Governance RING", "gRING"))
         );
         safeconsole.log("gRING: ", gRING_PROXY);
         safeconsole.log("gRING_Logic: ", Upgrades.getImplementationAddress(gRING_PROXY));
 
-        address ringDAO_PROXY = Upgrades.deployTransparentProxy(
-            "RingDAO.sol:RingDAO",
-            timelock,
-            abi.encodeCall(
-                RingDAO.initialize,
-                (
-                    IVotes(gRING),
-                    TimelockControllerUpgradeable(payable(timelock)),
-                    1 days,
-                    30 days,
-                    1_000_000 * 1e18,
-                    "RingDAO"
-                )
-            )
-        );
-        safeconsole.log("RingDAO: ", ringDAO_PROXY);
-        safeconsole.log("RingDAO_Logic: ", Upgrades.getImplementationAddress(ringDAO_PROXY));
-
         address hub_PROXY = Upgrades.deployTransparentProxy(
             "CollatorStakingHub.sol:CollatorStakingHub",
-            timelock,
+            deployer,
             abi.encodeCall(CollatorStakingHub.initialize, (gRING, deposit))
         );
         safeconsole.log("Hub: ", hub_PROXY);
