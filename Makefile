@@ -8,7 +8,7 @@ fmt    :; @forge fmt
 clean  :; @forge clean
 test   :; @forge test
 dry-run:; @forge script script/Deploy.s.sol:DeployScript
-deploy :; @forge script script/Deploy.s.sol:DeployScript --broadcast --verify
+deploy :; @forge script script/Deploy.s.sol:DeployScript --broadcast --verify --verifier blockscout
 
 sync   :; @git submodule update --recursive
 
