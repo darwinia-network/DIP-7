@@ -5,9 +5,9 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 contract CollatorStakingHubStorage {
     // ---------------------- CollatorSetStorage ----------------------------
-    // collator count;
+    // collator count
     uint256 public count;
-    // ordered collators.
+    // ordered collators
     mapping(address => address) public collators;
     // collator => votes = staked_ring * (1 - commission)
     mapping(address => uint256) public votesOf;
@@ -15,7 +15,7 @@ contract CollatorStakingHubStorage {
     // ---------------------- CollatorStakingHubStorage ---------------------
     // Governance RING
     address public gRING;
-    // Deposit NFT.
+    // Deposit NFT
     address public DEPOSIT;
     // collator => nomination pool
     mapping(address => address) public poolOf;
@@ -25,7 +25,7 @@ contract CollatorStakingHubStorage {
     mapping(address => mapping(address => uint256)) public stakingLocks;
     // collator => commissonLockTime
     mapping(address => uint256) public commissionLocks;
-    // user => collator => staked ring
+    // collator => user => staked ring
     mapping(address => mapping(address => uint256)) public stakedRINGOf;
     // user => staked depositIds
     mapping(address => EnumerableSet.UintSet) internal _stakedDeposits;

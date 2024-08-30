@@ -47,18 +47,15 @@ contract CollatorStakingHubTest is Test {
 
     function test_createNominationPool() public {
         vm.prank(alith);
-        address a = hub.createNominationPool(HEAD, 1);
-        assertEq(NominationPool(a).id(), 0);
+        address a = hub.join(HEAD, 1);
         assertEq(NominationPool(a).hub(), address(hub));
         assertEq(NominationPool(a).collator(), alith);
         vm.prank(baltathar);
-        address b = hub.createNominationPool(HEAD, 2);
-        assertEq(NominationPool(b).id(), 1);
+        address b = hub.join(HEAD, 2);
         assertEq(NominationPool(b).hub(), address(hub));
         assertEq(NominationPool(b).collator(), baltathar);
         vm.prank(charleth);
-        address c = hub.createNominationPool(baltathar, 3);
-        assertEq(NominationPool(c).id(), 2);
+        address c = hub.join(baltathar, 3);
         assertEq(NominationPool(c).hub(), address(hub));
         assertEq(NominationPool(c).collator(), charleth);
         assertEq(hub.collators(HEAD), baltathar);
@@ -70,25 +67,27 @@ contract CollatorStakingHubTest is Test {
         assertEq(hub.stakedOf(charleth), 0);
     }
 
-    function test_collect() public {
+    function test_updateCommission() public {
         vm.prank(alith);
-        address a = hub.createNominationPool(HEAD, 1);
+        address a = hub.join(HEAD, 1);
+
+        vm.warp(block.timestamp + hub.COMMISSION_LOCK_PERIOD() + 1);
 
         vm.prank(alith);
         vm.expectRevert(bytes("same"));
-        hub.collate(1, HEAD, HEAD);
+        hub.updateCommission(1, HEAD, HEAD);
 
         vm.prank(alith);
-        hub.collate(2, HEAD, HEAD);
+        hub.updateCommission(2, HEAD, HEAD);
         assertEq(hub.commissionOf(alith), 2);
 
         vm.prank(alith);
         vm.expectRevert("!locked");
-        hub.collate(3, HEAD, HEAD);
+        hub.updateCommission(3, HEAD, HEAD);
 
         vm.warp(block.timestamp + hub.COMMISSION_LOCK_PERIOD() + 1);
         vm.prank(alith);
-        hub.collate(3, HEAD, HEAD);
+        hub.updateCommission(3, HEAD, HEAD);
         assertEq(hub.commissionOf(alith), 3);
     }
 
@@ -96,7 +95,7 @@ contract CollatorStakingHubTest is Test {
         uint256 stake = 1 ether;
         vm.prank(alith);
         uint256 commissoin = 1;
-        address a = hub.createNominationPool(HEAD, commissoin);
+        address a = hub.join(HEAD, commissoin);
         vm.deal(alice, stake);
         vm.prank(alice);
         hub.stakeRING{value: stake}(alith, HEAD, HEAD);
@@ -111,7 +110,7 @@ contract CollatorStakingHubTest is Test {
         uint256 stake = 1 ether;
         uint256 commissoin = 1;
         vm.prank(alith);
-        address a = hub.createNominationPool(HEAD, commissoin);
+        address a = hub.join(HEAD, commissoin);
 
         vm.deal(alice, stake);
         vm.prank(alice);
@@ -134,7 +133,7 @@ contract CollatorStakingHubTest is Test {
         uint256 stake = 1 ether;
         uint256 commissoin = 1;
         vm.prank(alith);
-        address a = hub.createNominationPool(HEAD, commissoin);
+        address a = hub.join(HEAD, commissoin);
 
         vm.deal(alice, stake);
         vm.prank(alice);
@@ -158,7 +157,7 @@ contract CollatorStakingHubTest is Test {
 
         uint256 commissoin = 1;
         vm.prank(alith);
-        address a = hub.createNominationPool(HEAD, commissoin);
+        address a = hub.join(HEAD, commissoin);
 
         vm.prank(alice);
         Deposit(deposit).approve(address(hub), id);
@@ -189,7 +188,7 @@ contract CollatorStakingHubTest is Test {
 
         uint256 commissoin = 1;
         vm.prank(alith);
-        address a = hub.createNominationPool(HEAD, commissoin);
+        address a = hub.join(HEAD, commissoin);
 
         vm.prank(alice);
         Deposit(deposit).approve(address(hub), id);

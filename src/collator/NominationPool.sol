@@ -9,7 +9,6 @@ contract NominationPool {
 
     /* ========== STATE VARIABLES ========== */
 
-    uint256 public id;
     address public hub;
     address public collator;
     uint256 public periodFinish = 0;
@@ -31,10 +30,9 @@ contract NominationPool {
 
     /* ========== CONSTRUCTOR ========== */
 
-    constructor(address collator_, uint256 index) {
+    constructor(address collator_) {
         hub = msg.sender;
         collator = collator_;
-        id = index;
     }
 
     /* ========== VIEWS ========== */

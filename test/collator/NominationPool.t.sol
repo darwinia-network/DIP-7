@@ -16,7 +16,7 @@ contract NominationPoolTest is Test {
     address bob = address(new Guy());
 
     function setUp() public {
-        pool = new NominationPool(self, 0);
+        pool = new NominationPool(self);
         assertEq(pool.rewardsDuration(), REWARDS_DURATION);
     }
 
@@ -33,7 +33,6 @@ contract NominationPoolTest is Test {
 
     function test_constructor() public view {
         assertEq(pool.totalSupply(), 0);
-        assertEq(pool.id(), 0);
         assertEq(pool.hub(), self);
         assertEq(pool.collator(), self);
     }

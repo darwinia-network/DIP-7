@@ -28,7 +28,7 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
 
     event Staked(address indexed pool, address collator, address account, uint256 assets);
     event Unstaked(address indexed pool, address collator, address account, uint256 assets);
-    event NominationPoolCreated(address indexed stRING, address collator, address prev);
+    event NominationPoolCreated(address indexed pool, address collator);
     event CommissionUpdated(address indexed collator, uint256 commission);
 
     modifier onlySystem() {
@@ -48,28 +48,73 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
         _disableInitializers();
     }
 
-    function createNominationPool(address prev, uint256 commission) public returns (address pool) {
+    /// 1. Create nomination pool
+    /// 2. Join collator set
+    /// 3. Set commsission
+    function join(address prev, uint256 commission) public returns (address pool) {
+        address collator = msg.sender;
+        pool = createNominationPool();
+        _updateCommission(collator, commission);
+        _addCollator(collator, 0, prev);
+    }
+
+    /// 1. Join collator set
+    /// 2. Set commission
+    function collate(address prev, uint256 commission) public {
+        address collator = msg.sender;
+        require(poolOf[collator] != address(0), "!pool");
+        _updateCommission(collator, commission);
+        _addCollator(collator, _assetsToVotes(commission, stakedOf(collator)), prev);
+    }
+
+    /// 1. Exit collator set
+    /// 2. Clear commission
+    function chill(address prev) public {
+        address collator = msg.sender;
+        require(poolOf[collator] != address(0), "!pool");
+        _setCommisson(collator, 0);
+        _removeCollator(collator, prev);
+    }
+
+    function createNominationPool() public returns (address pool) {
         address collator = msg.sender;
         require(poolOf[collator] == address(0), "created");
 
-        uint256 index = count;
         bytes memory bytecode = type(NominationPool).creationCode;
-        bytes memory initCode = bytes.concat(bytecode, abi.encode(collator, index));
+        bytes memory initCode = bytes.concat(bytecode, abi.encode(collator));
         assembly {
             pool := create2(0, add(initCode, 32), mload(initCode), 0)
         }
         require(pool != address(0), "!create2");
-
         poolOf[collator] = pool;
-        _addCollator(collator, 0, prev);
-        _collate(collator, commission);
-        emit NominationPoolCreated(pool, collator, prev);
+        emit NominationPoolCreated(pool, collator);
+    }
+
+    function updateCommission(uint256 commission, address oldPrev, address newPrev) public nonReentrant {
+        address collator = msg.sender;
+        require(poolOf[collator] != address(0), "!pool");
+        require(commissionOf[collator] != commission, "same");
+        _removeCollator(collator, oldPrev);
+        _updateCommission(collator, commission);
+        _addCollator(collator, _assetsToVotes(commission, stakedOf(collator)), newPrev);
+    }
+
+    function _updateCommission(address collator, uint256 commission) internal {
+        require(commissionLocks[collator] < block.timestamp, "!locked");
+        _setCommisson(collator, commission);
+        commissionLocks[collator] = COMMISSION_LOCK_PERIOD + block.timestamp;
+    }
+
+    function _setCommisson(address collator, uint256 commission) internal {
+        require(commission <= COMMISSION_BASE, "!commission");
+        commissionOf[collator] = commission;
+        emit CommissionUpdated(collator, commission);
     }
 
     function _stake(address collator, address account, uint256 assets) internal {
         stakingLocks[collator][account] = STAKING_LOCK_PERIOD + block.timestamp;
         address pool = poolOf[collator];
-        require(pool != address(0), "!collator");
+        require(pool != address(0), "!pool");
         INominationPool(pool).stake(account, assets);
         IGRING(gRING).mint(account, assets);
         emit Staked(pool, collator, account, assets);
@@ -78,7 +123,7 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
     function _unstake(address collator, address account, uint256 assets) internal {
         require(stakingLocks[collator][account] < block.timestamp, "!locked");
         address pool = poolOf[collator];
-        require(pool != address(0), "!collator");
+        require(pool != address(0), "!pool");
         IGRING(gRING).burn(account, assets);
         INominationPool(pool).withdraw(account, assets);
         emit Unstaked(pool, collator, account, assets);
@@ -126,24 +171,13 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
         require(_stakedDeposits[account].remove(depositId), "!remove");
     }
 
-    function collate(uint256 commission, address oldPrev, address newPrev) public nonReentrant {
-        address collator = msg.sender;
-        require(poolOf[collator] != address(0), "!collator");
-        require(commissionLocks[collator] < block.timestamp, "!locked");
-        require(commissionOf[collator] != commission, "same");
-        _removeCollator(collator, oldPrev);
-        _collate(collator, commission);
-        _addCollator(collator, _assetsToVotes(commission, stakedOf(collator)), newPrev);
-        commissionLocks[collator] = COMMISSION_LOCK_PERIOD + block.timestamp;
-    }
-
     /// @dev Distribute collator reward from Staking Pallet Account.
     ///      The amount of the reward must be passed in via msg.value.
     /// @notice Only Staking Pallet Account could call this function.
     /// @param collator The collator address to distribute reward.
     function distributeReward(address collator) public payable onlySystem nonReentrant {
         address pool = poolOf[collator];
-        require(pool != address(0), "!collator");
+        require(pool != address(0), "!pool");
         uint256 rewards = msg.value;
         uint256 commission_ = rewards * commissionOf[collator] / COMMISSION_BASE;
         payable(collator).sendValue(commission_);
@@ -152,18 +186,12 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
 
     function stakedOf(address collator) public view returns (uint256) {
         address pool = poolOf[collator];
-        require(pool != address(0), "!collator");
+        require(pool != address(0), "!pool");
         return INominationPool(pool).totalSupply();
     }
 
-    function _collate(address collator, uint256 commission) internal {
-        require(commission <= COMMISSION_BASE, "!commission");
-        commissionOf[collator] = commission;
-        emit CommissionUpdated(collator, commission);
-    }
-
     function _assetsToVotes(uint256 commission, uint256 assets) internal pure returns (uint256) {
-        return assets * (100 - commission) / 100;
+        return assets * (COMMISSION_BASE - commission) / COMMISSION_BASE;
     }
 
     function stakedDepositsOf(address account) public view returns (uint256[] memory) {
