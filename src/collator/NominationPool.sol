@@ -54,16 +54,10 @@ contract NominationPool {
             return rewardPerTokenStored;
         }
         return rewardPerTokenStored + (lastTimeRewardApplicable() - lastUpdateTime) * rewardRate * 1e18 / _totalSupply;
-        // return rewardPerTokenStored.add(
-        //     lastTimeRewardApplicable().sub(lastUpdateTime).mul(rewardRate).mul(1e18).div(_totalSupply)
-        // );
     }
 
     function earned(address account) public view returns (uint256) {
         return _balances[account] * (rewardPerToken() - userRewardPerTokenPaid[account]) / 1e18 + rewards[account];
-        // return _balances[account].mul(rewardPerToken().sub(userRewardPerTokenPaid[account])).div(1e18).add(
-        //     rewards[account]
-        // );
     }
 
     function getRewardForDuration() external view returns (uint256) {
