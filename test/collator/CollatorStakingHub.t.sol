@@ -220,7 +220,7 @@ contract CollatorStakingHubTest is Test {
 
     function test_lossOfPrecision() public {
         uint256 stake = 1;
-		uint256 total = 3;
+        uint256 total = 3;
         uint256 commissoin = 30;
         vm.prank(alith);
         address a = hub.createAndCollate(HEAD, commissoin);
@@ -228,15 +228,15 @@ contract CollatorStakingHubTest is Test {
         vm.deal(alice, total);
         vm.prank(alice);
         hub.stakeRING{value: stake}(alith, HEAD, HEAD);
-		assertEq(hub.votesOf(alith), 0);
+        assertEq(hub.votesOf(alith), 0);
 
         vm.prank(alice);
         hub.stakeRING{value: stake}(alith, HEAD, HEAD);
-		assertEq(hub.votesOf(alith), 1);
+        assertEq(hub.votesOf(alith), 1);
 
         vm.prank(alice);
         hub.stakeRING{value: stake}(alith, HEAD, HEAD);
-		assertEq(hub.votesOf(alith), 2);
+        assertEq(hub.votesOf(alith), 2);
 
         vm.warp(block.timestamp + hub.STAKING_LOCK_PERIOD() + 1);
 
