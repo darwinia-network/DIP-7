@@ -112,6 +112,12 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
         emit CommissionUpdated(collator, commission);
     }
 
+	function _updateCollatorVotes(address collator, address oldPrev, address newPrev) internal {
+		uint assets = stakedOf(collator);
+		uint newVotes = _assetsToVotes(commissionOf[collator], assets);
+		_updateVotes(collator, newVotes, oldPrev, newPrev);
+	}
+
     function _stake(address collator, address account, uint256 assets) internal {
         stakingLocks[collator][account] = STAKING_LOCK_PERIOD + block.timestamp;
         address pool = poolOf[collator];
@@ -138,15 +144,15 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
 
     function stakeRING(address collator, address oldPrev, address newPrev) public payable nonReentrant {
         _stake(collator, msg.sender, msg.value);
-        _increaseVotes(collator, _assetsToVotes(commissionOf[collator], msg.value), oldPrev, newPrev);
+		_updateCollatorVotes(collator, oldPrev, newPrev);
         stakedRINGOf[collator][msg.sender] += msg.value;
     }
 
     function unstakeRING(address collator, uint256 assets, address oldPrev, address newPrev) public nonReentrant {
         _unstake(collator, msg.sender, assets);
-        payable(msg.sender).sendValue(assets);
-        _reduceVotes(collator, _assetsToVotes(commissionOf[collator], assets), oldPrev, newPrev);
+		_updateCollatorVotes(collator, oldPrev, newPrev);
         stakedRINGOf[collator][msg.sender] -= assets;
+        payable(msg.sender).sendValue(assets);
     }
 
     function stakeDeposits(address collator, uint256[] calldata depositIds, address oldPrev, address newPrev)
@@ -165,7 +171,7 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
             totalAssets += assets;
         }
         _stake(collator, account, totalAssets);
-        _increaseVotes(collator, _assetsToVotes(commissionOf[collator], totalAssets), oldPrev, newPrev);
+		_updateCollatorVotes(collator, oldPrev, newPrev);
     }
 
     function unstakeDeposits(address collator, uint256[] calldata depositIds, address oldPrev, address newPrev)
@@ -186,7 +192,7 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
             totalAssets += info.assets;
         }
         _unstake(collator, account, totalAssets);
-        _reduceVotes(collator, _assetsToVotes(commissionOf[collator], totalAssets), oldPrev, newPrev);
+		_updateCollatorVotes(collator, oldPrev, newPrev);
     }
 
     /// @dev Distribute collator reward from Staking Pallet Account.
@@ -209,7 +215,7 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
         return INominationPool(pool).totalSupply();
     }
 
-    function assetsToVotes(uint256 commission, uint256 assets) internal pure returns (uint256) {
+    function assetsToVotes(uint256 commission, uint256 assets) public pure returns (uint256) {
         return _assetsToVotes(commission, assets);
     }
 

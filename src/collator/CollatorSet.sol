@@ -66,14 +66,6 @@ abstract contract CollatorSet is Initializable, CollatorStakingHubStorage {
         emit RemoveCollator(cur, prev);
     }
 
-    function _increaseVotes(address cur, uint256 votes, address oldPrev, address newPrev) internal {
-        _updateVotes(cur, votesOf[cur] + votes, oldPrev, newPrev);
-    }
-
-    function _reduceVotes(address cur, uint256 votes, address oldPrev, address newPrev) internal {
-        _updateVotes(cur, votesOf[cur] - votes, oldPrev, newPrev);
-    }
-
     function _updateVotes(address cur, uint256 newVotes, address oldPrev, address newPrev) internal {
         require(_isValid(cur), "!valid");
         require(collators[cur] != address(0), "!cur");
