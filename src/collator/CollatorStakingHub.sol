@@ -30,6 +30,7 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
     event Unstaked(address indexed pool, address collator, address account, uint256 assets);
     event NominationPoolCreated(address indexed pool, address collator);
     event CommissionUpdated(address indexed collator, uint256 commission);
+    event RewardDistributed(address indexed collator, uint256 reward);
 
     modifier onlySystem() {
         require(msg.sender == SYSTEM_PALLET, "!system");
@@ -199,6 +200,7 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
         uint256 commission_ = rewards * commissionOf[collator] / COMMISSION_BASE;
         payable(collator).sendValue(commission_);
         INominationPool(pool).notifyRewardAmount{value: rewards - commission_}();
+        emit RewardDistributed(collator, rewards);
     }
 
     function stakedOf(address collator) public view returns (uint256) {
@@ -207,8 +209,7 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
         return INominationPool(pool).totalSupply();
     }
 
-    function predictVotes(address collator, uint256 commission) public view returns (uint256) {
-        uint256 assets = stakedOf(collator);
+    function assetsToVotes(uint256 commission, uint256 assets) internal pure returns (uint256) {
         return _assetsToVotes(commission, assets);
     }
 
