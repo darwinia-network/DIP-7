@@ -7,16 +7,18 @@ import {Upgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 import {Core} from "openzeppelin-foundry-upgrades/internal/Core.sol";
 
 import {CollatorStakingHub} from "../src/collator/CollatorStakingHub.sol";
+import {Deposit} from "../src/deposit/Deposit.sol";
 
 contract MigrateScript is Script {
-    address hub = 0xb037E75fE2BFA42DdDC17BB90963Dafe10A5Dd11;
+    address proxy = 0xDeC9cD45e921F2AedE72f694743265af37d47Fa7;
 
     function run() public {
         vm.startBroadcast();
 
-        address logic = address(new CollatorStakingHub());
-        // Core.upgradeProxyTo(hub, logic, "");
-        // require(logic == Upgrades.getImplementationAddress(hub));
+        // address logic = address(new CollatorStakingHub());
+        address logic = address(new Deposit());
+        // Core.upgradeProxyTo(proxy, logic, "");
+        // require(logic == Upgrades.getImplementationAddress(proxy));
         safeconsole.log("logic: ", logic);
 
         vm.stopBroadcast();
