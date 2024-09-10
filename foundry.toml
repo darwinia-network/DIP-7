@@ -2,7 +2,7 @@
 src = "src"
 out = "out"
 libs = ["lib"]
-sender = "0xF98F1A9187fDA37E4aDC82cC4063ADEF701339bc"
+sender = "0x5d3c814F82Ef2b22101635f8C6A3e7C8E09E7DD6"
 force = true
 ffi = true
 ast = true
@@ -15,8 +15,8 @@ bytecode_hash = "ipfs"
 extra_output = ["storageLayout"]
 extra_output_files = ["metadata"]
 fs_permissions = [{ access = "read", path = "out" }]
-# eth_rpc_url  = "https://rpc.darwinia.network"
-# etherscan_api_key = "xxx"
+eth_rpc_url  = "https://rpc.darwinia.network"
+etherscan_api_key = "xxx"
 
 [rpc_endpoints]
 koi = "https://koi-rpc.darwinia.network"

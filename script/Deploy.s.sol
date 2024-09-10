@@ -11,10 +11,10 @@ import {Deposit} from "../src/deposit/Deposit.sol";
 import {GovernanceRing} from "../src/governance/GovernanceRing.sol";
 
 contract DeployScript is Script {
-    address deployer = 0xF98F1A9187fDA37E4aDC82cC4063ADEF701339bc;
-    address deposit = 0xDeC9cD45e921F2AedE72f694743265af37d47Fa7;
-    address gRING = 0xd677D6461870DD88B915EBa76954D1a15114B42d;
-    address hub = 0xb037E75fE2BFA42DdDC17BB90963Dafe10A5Dd11;
+    address deployer = 0x5d3c814F82Ef2b22101635f8C6A3e7C8E09E7DD6;
+    address deposit = 0x46275d29113f065c2aac262f34C7a3d8a8B7377D;
+    address gRING = 0xdafa555e2785DC8834F4Ea9D1ED88B6049142999;
+    address hub = 0xa4fFAC7A5Da311D724eD47393848f694Baee7930;
 
     struct Settings {
         string depositName;
