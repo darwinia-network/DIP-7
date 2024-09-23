@@ -2,7 +2,7 @@
 src = "src"
 out = "out"
 libs = ["lib"]
-sender = "0x0f14341A7f464320319025540E8Fe48Ad0fe5aec"
+sender = "0x5d3c814F82Ef2b22101635f8C6A3e7C8E09E7DD6"
 force = true
 ffi = true
 ast = true
@@ -15,13 +15,15 @@ bytecode_hash = "ipfs"
 extra_output = ["storageLayout"]
 extra_output_files = ["metadata"]
 fs_permissions = [{ access = "read", path = "out" }]
-eth_rpc_url  = "https://koi-rpc.darwinia.network"
-etherscan_api_key = "xxx"
+# eth_rpc_url  = "https://rpc.darwinia.network"
+# etherscan_api_key = "xxx"
 
 [rpc_endpoints]
 koi = "https://koi-rpc.darwinia.network"
 crab = "https://crab-rpc.darwinia.network"
+darwinia = "https://rpc.darwinia.network"
 
 [etherscan]
 koi = { key = "xxx", url = "https://koi-scan.darwinia.network/api", chain = 701 }
 crab = { key = "xxx", url = "https://crab-scan.darwinia.network/api", chain = 44 }
+darwinia = { key = "xxx", url = "https://explorer.darwinia.network/api", chain = 46 }

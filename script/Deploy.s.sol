@@ -11,10 +11,42 @@ import {Deposit} from "../src/deposit/Deposit.sol";
 import {GovernanceRing} from "../src/governance/GovernanceRing.sol";
 
 contract DeployScript is Script {
-    address deployer = 0x0f14341A7f464320319025540E8Fe48Ad0fe5aec;
-    address deposit = 0x7FAcDaFB282028E4B3264fB08cd633A9142514df;
-    address gRING = 0x87BD07263D0Ed5687407B80FEB16F2E32C2BA44f;
-    address hub = 0x279a1aaDb6eC9d213350f95C3Da1A9580FB3326B;
+    address deployer = 0x5d3c814F82Ef2b22101635f8C6A3e7C8E09E7DD6;
+    address deposit = 0x46275d29113f065c2aac262f34C7a3d8a8B7377D;
+    address gRING = 0xdafa555e2785DC8834F4Ea9D1ED88B6049142999;
+    address hub = 0xa4fFAC7A5Da311D724eD47393848f694Baee7930;
+
+    struct Settings {
+        string depositName;
+        string depositSymbol;
+        string gringName;
+        string gringSymbol;
+    }
+
+    function getSettings(uint256 chainId) public pure returns (Settings memory) {
+        if (chainId == 701) {
+            return Settings({
+                depositName: "KRING Deposit NFT",
+                depositSymbol: "KDPS",
+                gringName: "Governance KRING",
+                gringSymbol: "gKRING"
+            });
+        } else if (chainId == 44) {
+            return Settings({
+                depositName: "CRAB Deposit NFT",
+                depositSymbol: "CDPS",
+                gringName: "Governance CRAB",
+                gringSymbol: "gCRAB"
+            });
+        } else if (chainId == 46) {
+            return Settings({
+                depositName: "RING Deposit NFT",
+                depositSymbol: "RDPS",
+                gringName: "Governance RING",
+                gringSymbol: "gRING"
+            });
+        }
+    }
 
     function setUp() public {}
 
@@ -23,8 +55,11 @@ contract DeployScript is Script {
 
         require(msg.sender == deployer, "!deployer");
 
+        safeconsole.log("Chain Id: ", block.chainid);
+        Settings memory s = getSettings(block.chainid);
+
         address deposit_PROXY = Upgrades.deployTransparentProxy(
-            "Deposit.sol:Deposit", deployer, abi.encodeCall(Deposit.initialize, ("RING Deposit NFT", "RDPS"))
+            "Deposit.sol:Deposit", deployer, abi.encodeCall(Deposit.initialize, (s.depositName, s.depositSymbol))
         );
         safeconsole.log("Depoist: ", deposit_PROXY);
         safeconsole.log("Depoist_Logic: ", Upgrades.getImplementationAddress(deposit_PROXY));
@@ -32,7 +67,7 @@ contract DeployScript is Script {
         address gRING_PROXY = Upgrades.deployTransparentProxy(
             "GovernanceRing.sol:GovernanceRing",
             deployer,
-            abi.encodeCall(GovernanceRing.initialize, (deployer, hub, deposit, "Governance RING", "gRING"))
+            abi.encodeCall(GovernanceRing.initialize, (deployer, hub, deposit, s.gringName, s.gringSymbol))
         );
         safeconsole.log("gRING: ", gRING_PROXY);
         safeconsole.log("gRING_Logic: ", Upgrades.getImplementationAddress(gRING_PROXY));

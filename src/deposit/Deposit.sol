@@ -230,7 +230,7 @@ contract Deposit is
         override(ERC721Upgradeable, ERC721URIStorageUpgradeable)
         returns (string memory)
     {
-        return "ipfs://bafybeih57kauz6npkbafh2x3cv3hyljcakdccuckb4huwnwxxxrtqr5pqe";
+        return "ipfs://bafybeifyt273t4ns4f5c4u57uvtbbh5cuv5uxtpt6x3kn32mfecgltjeh4";
     }
 
     function supportsInterface(bytes4 interfaceId)

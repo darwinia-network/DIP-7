@@ -3,6 +3,8 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
+import {safeconsole} from "forge-std/safeconsole.sol";
+
 import "../../src/collator/NominationPool.sol";
 
 contract NominationPoolTest is Test {
@@ -16,7 +18,7 @@ contract NominationPoolTest is Test {
     address bob = address(new Guy());
 
     function setUp() public {
-        pool = new NominationPool(self, 0);
+        pool = new NominationPool(self);
         assertEq(pool.rewardsDuration(), REWARDS_DURATION);
     }
 
@@ -27,13 +29,12 @@ contract NominationPoolTest is Test {
         assertEq(endTime, startTime + REWARDS_DURATION);
     }
 
-    function invariant_hub() public view {
-        assertEq(pool.hub(), self);
-    }
+    // function invariant_hub() public view {
+    //     assertEq(pool.hub(), self);
+    // }
 
     function test_constructor() public view {
         assertEq(pool.totalSupply(), 0);
-        assertEq(pool.id(), 0);
         assertEq(pool.hub(), self);
         assertEq(pool.collator(), self);
     }
@@ -58,7 +59,7 @@ contract NominationPoolTest is Test {
     function test_notifyRewardAmount_half() public {
         start();
 
-        vm.warp((endTime - startTime) / 2 + 1);
+        vm.warp(startTime + (endTime - startTime) / 2);
 
         pool.stake(alice, 2 ether);
         uint256 stakeStartTime = pool.lastUpdateTime();
@@ -81,7 +82,7 @@ contract NominationPoolTest is Test {
 
         start();
 
-        vm.warp((endTime - startTime) / 2 + 1);
+        vm.warp(startTime + (endTime - startTime) / 2);
 
         pool.stake(bob, 2 ether);
 

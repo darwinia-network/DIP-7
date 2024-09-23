@@ -113,11 +113,11 @@ contract CollatorSetTest is Test, CollatorSet {
     }
 
     function perform_increase(address cur, uint256 votes, address oldPrev, address newPrev) public {
-        _increaseVotes(cur, votes, oldPrev, newPrev);
+        _updateVotes(cur, votesOf[cur] + votes, oldPrev, newPrev);
     }
 
     function perform_reduce(address cur, uint256 votes, address oldPrev, address newPrev) public {
-        _reduceVotes(cur, votes, oldPrev, newPrev);
+        _updateVotes(cur, votesOf[cur] - votes, oldPrev, newPrev);
     }
 
     function checkCount(uint256 cnt) public view {

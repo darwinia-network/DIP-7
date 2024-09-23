@@ -39,7 +39,7 @@ contract DepositTest is Test, ERC721Holder {
         assertEq(IERC721(deposit).balanceOf(self), 1);
         assertEq(IERC721(deposit).ownerOf(id), self);
         assertEq(
-            IERC721Metadata(deposit).tokenURI(id), "ipfs://bafybeih57kauz6npkbafh2x3cv3hyljcakdccuckb4huwnwxxxrtqr5pqe"
+            IERC721Metadata(deposit).tokenURI(id), "ipfs://bafybeifyt273t4ns4f5c4u57uvtbbh5cuv5uxtpt6x3kn32mfecgltjeh4"
         );
         assertEq(IERC721Enumerable(deposit).tokenOfOwnerByIndex(self, 0), id);
         assertEq(IERC721Enumerable(deposit).tokenByIndex(0), id);

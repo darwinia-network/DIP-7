@@ -9,7 +9,6 @@ contract NominationPool {
 
     /* ========== STATE VARIABLES ========== */
 
-    uint256 public id;
     address public hub;
     address public collator;
     uint256 public periodFinish = 0;
@@ -31,10 +30,9 @@ contract NominationPool {
 
     /* ========== CONSTRUCTOR ========== */
 
-    constructor(address collator_, uint256 index) {
+    constructor(address collator_) {
         hub = msg.sender;
         collator = collator_;
-        id = index;
     }
 
     /* ========== VIEWS ========== */
@@ -56,16 +54,10 @@ contract NominationPool {
             return rewardPerTokenStored;
         }
         return rewardPerTokenStored + (lastTimeRewardApplicable() - lastUpdateTime) * rewardRate * 1e18 / _totalSupply;
-        // return rewardPerTokenStored.add(
-        //     lastTimeRewardApplicable().sub(lastUpdateTime).mul(rewardRate).mul(1e18).div(_totalSupply)
-        // );
     }
 
     function earned(address account) public view returns (uint256) {
         return _balances[account] * (rewardPerToken() - userRewardPerTokenPaid[account]) / 1e18 + rewards[account];
-        // return _balances[account].mul(rewardPerToken().sub(userRewardPerTokenPaid[account])).div(1e18).add(
-        //     rewards[account]
-        // );
     }
 
     function getRewardForDuration() external view returns (uint256) {
