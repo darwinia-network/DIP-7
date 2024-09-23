@@ -14,8 +14,8 @@ contract CollatorStakingHubTest is Test {
     address deposit;
     CollatorStakingHub hub;
 
-    address HEAD = address(0x1);
-    address TAIL = address(0x2);
+    address internal constant HEAD = address(0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF);
+    address internal constant TAIL = address(0x1);
     address alith = address(0x0a);
     address baltathar = address(0x0b);
     address charleth = address(0xc);
@@ -55,12 +55,12 @@ contract CollatorStakingHubTest is Test {
         assertEq(NominationPool(b).hub(), address(hub));
         assertEq(NominationPool(b).collator(), baltathar);
         vm.prank(charleth);
-        address c = hub.createAndCollate(baltathar, 3);
+        address c = hub.createAndCollate(HEAD, 3);
         assertEq(NominationPool(c).hub(), address(hub));
         assertEq(NominationPool(c).collator(), charleth);
-        assertEq(hub.collators(HEAD), baltathar);
-        assertEq(hub.collators(baltathar), charleth);
-        assertEq(hub.collators(charleth), alith);
+        assertEq(hub.collators(HEAD), charleth);
+        assertEq(hub.collators(charleth), baltathar);
+        assertEq(hub.collators(baltathar), alith);
         assertEq(hub.collators(alith), TAIL);
         assertEq(hub.stakedOf(alith), 0);
         assertEq(hub.stakedOf(baltathar), 0);
