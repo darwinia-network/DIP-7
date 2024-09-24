@@ -38,4 +38,6 @@ contract CollatorStakingHubStorage {
 
     // depositId => depositInfo
     mapping(uint256 => DepositInfo) public depositInfos;
+
+    uint256 public updateTimeStamp;
 }

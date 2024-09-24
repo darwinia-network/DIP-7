@@ -52,6 +52,7 @@ abstract contract CollatorSet is Initializable, CollatorStakingHubStorage {
         collators[prev] = cur;
         votesOf[cur] = votes;
         count++;
+        updateTimeStamp = block.timestamp;
         emit AddCollator(cur, votes, prev);
     }
 
@@ -63,6 +64,7 @@ abstract contract CollatorSet is Initializable, CollatorStakingHubStorage {
         collators[cur] = address(0);
         votesOf[cur] = 0;
         count--;
+        updateTimeStamp = block.timestamp;
         emit RemoveCollator(cur, prev);
     }
 
