@@ -77,6 +77,7 @@ abstract contract CollatorSet is Initializable, CollatorStakingHubStorage {
             require(_isPrevCollator(cur, oldPrev), "!oldPrev2");
             require(_verifyIndex(newPrev, newVotes, collators[cur], cur), "!votes");
             votesOf[cur] = newVotes;
+            updateTimeStamp = block.timestamp;
         } else {
             _removeCollator(cur, oldPrev);
             _addCollator(cur, newVotes, newPrev);
