@@ -41,6 +41,7 @@ contract Deposit is
     // System Account.
     address public constant SYSTEM_PALLET = 0x6D6f646c64612f74727372790000000000000000;
     IKTON public constant KTON = IKTON(0x0000000000000000000000000000000000000402);
+    uint256 public constant MAX_LOCK_PERIOD = 12;
 
     event DepositCreated(
         uint256 indexed depositId, address indexed account, uint256 value, uint256 months, uint256 interest
@@ -165,7 +166,7 @@ contract Deposit is
 
     function _deposit(address account, uint256 value, uint64 months) internal returns (uint256) {
         require(value > 0 && value < type(uint128).max);
-        require(months <= 36 && months >= 1);
+        require(months <= MAX_LOCK_PERIOD && months >= 1);
 
         uint256 id = _nextTokenId++;
         depositOf[id] = DepositInfo({months: months, startAt: uint64(block.timestamp), value: uint128(value)});
