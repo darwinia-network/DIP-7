@@ -25,7 +25,7 @@ contract TallyScript is Script {
                 (
                     IVotes(gRING),
                     TimelockControllerUpgradeable(payable(timelock)),
-                    1 days,
+                    0,
                     2 weeks,
                     1_000_000 * 1e18,
                     "RingDAO"
