@@ -22,7 +22,7 @@ contract AuthScript is Script {
         if (block.chainid == 44) {
             return 0x663fC3000f0101BF16FDc9F73F02DA6Efa8c5875;
         } else if (block.chainid == 46) {
-            revert("TODO");
+            return 0x4DCf0f14cC58fc2Bf313e70573dDB7309523bb23;
         } else {
             revert("unsupported");
         }
