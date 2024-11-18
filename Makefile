@@ -10,6 +10,7 @@ test   :; @forge test
 dry-run:; @forge script script/Deploy.s.sol:DeployScript
 deploy :; @forge script script/Deploy.s.sol:DeployScript --broadcast --verify --verifier blockscout
 migrate:; @forge script script/Migrate.s.sol:MigrateScript --broadcast --verify --verifier blockscout
+auth   :; @forge script script/Auth.s.sol:AuthScript --broadcast
 
 sync   :; @git submodule update --recursive
 
