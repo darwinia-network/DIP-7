@@ -263,6 +263,9 @@ contract CollatorStakingHubTest is Test {
         vm.prank(alith);
         hub.stopCollation(HEAD);
 
+        assertEq(hub.votesOf(alith), 0);
+        assertEq(hub.stakedOf(alith), stake);
+
         vm.prank(alice);
         hub.unstakeDepositsFromInactiveCollator(alith, ids);
 
