@@ -128,7 +128,7 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
     }
 
     function _unstake(address collator, address account, uint256 assets) internal {
-        require(stakingLocks[collator][account] < block.timestamp, "!locked");
+        // require(stakingLocks[collator][account] < block.timestamp, "!locked");
         address pool = poolOf[collator];
         require(pool != address(0), "!pool");
         IGRING(gRING).burn(account, assets);
