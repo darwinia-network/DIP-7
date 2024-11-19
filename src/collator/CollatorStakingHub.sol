@@ -155,6 +155,13 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
         payable(msg.sender).sendValue(assets);
     }
 
+    function unstakeRINGFromInactiveCollator(address collator, uint256 assets) public nonReentrant {
+        require(_isInactiveCollator(collator), "active");
+        _unstake(collator, msg.sender, assets);
+        stakedRINGOf[collator][msg.sender] -= assets;
+        payable(msg.sender).sendValue(assets);
+    }
+
     function stakeDeposits(address collator, uint256[] calldata depositIds, address oldPrev, address newPrev)
         public
         nonReentrant
@@ -193,6 +200,24 @@ contract CollatorStakingHub is ReentrancyGuardUpgradeable, CollatorSet {
         }
         _unstake(collator, account, totalAssets);
         _updateCollatorVotes(collator, oldPrev, newPrev);
+    }
+
+    function unstakeDepositsFromInactiveCollator(address collator, uint256[] calldata depositIds) public nonReentrant {
+        require(_isInactiveCollator(collator), "active");
+        require(depositIds.length > 0, "!len");
+        address account = msg.sender;
+        uint256 totalAssets;
+        for (uint256 i = 0; i < depositIds.length; i++) {
+            uint256 depositId = depositIds[i];
+            DepositInfo memory info = depositInfos[depositId];
+            require(info.account == account, "!account");
+            require(info.collator == collator, "!collator");
+            IDeposit(DEPOSIT).transferFrom(address(this), account, depositId);
+            require(_stakedDeposits[account].remove(depositId), "!remove");
+            delete depositInfos[depositId];
+            totalAssets += info.assets;
+        }
+        _unstake(collator, account, totalAssets);
     }
 
     /// @dev Distribute collator reward from Staking Pallet Account.

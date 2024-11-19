@@ -40,6 +40,10 @@ abstract contract CollatorSet is Initializable, CollatorStakingHubStorage {
         return c != address(0) && c != HEAD && c != TAIL;
     }
 
+    function _isInactiveCollator(address c) public view returns (bool) {
+        return _isValid(c) && collators[c] == address(0);
+    }
+
     function _addCollator(address cur, uint256 votes, address prev) internal {
         require(_isValid(cur), "!valid");
         address next = collators[prev];
