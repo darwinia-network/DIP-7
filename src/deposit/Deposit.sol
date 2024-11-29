@@ -122,7 +122,9 @@ contract Deposit is
         uint256[] memory ids = new uint256[](len);
         for (uint256 i = 0; i < len; i++) {
             PalletInfo memory info = deposits[i];
-            require(info.value > 0, "!value");
+            if (info.value == 0) {
+                continue;
+            }
             uint64 months = (info.expiredAt - info.startAt) / uint64(MONTH);
             require(months <= 36 && months >= 1, "!months");
             require(info.startAt <= block.timestamp, "!startAt");
