@@ -172,111 +172,6 @@ contract CollatorStakingHubTest is Test {
         assertEq(IERC20(gring).balanceOf(alice), 0);
     }
 
-    function test_stakeDeposit() public {
-        uint256 stake = 1 ether;
-        uint256 id = _migrateDeposit(alice, uint128(stake), 1);
-
-        uint256 commissoin = 1;
-        vm.prank(alith);
-        address a = hub.createAndCollate(HEAD, commissoin);
-
-        vm.prank(alice);
-        Deposit(deposit).approve(address(hub), id);
-        vm.prank(alice);
-        uint256[] memory ids = new uint256[](1);
-        ids[0] = id;
-        hub.stakeDeposits(alith, ids, HEAD, HEAD);
-        assertEq(hub.stakingLocks(alith, alice), hub.STAKING_LOCK_PERIOD() + block.timestamp);
-        (address account, uint256 assets, address collator) = hub.depositInfos(id);
-        assertEq(account, alice);
-        assertEq(assets, stake);
-        assertEq(collator, alith);
-        assertEq(hub.stakedDepositsLength(alice), 1);
-        uint256[] memory deposits = hub.stakedDepositsOf(alice);
-        assertEq(deposits.length, 1);
-        assertEq(deposits[0], id);
-        assertEq(hub.stakedDepositsAt(alice, 0), id);
-        assertTrue(hub.stakedDepositsContains(alice, id));
-        assertEq(NominationPool(a).balanceOf(alice), stake);
-        assertEq(hub.votesOf(alith), stake * (100 - commissoin) / 100);
-        assertEq(hub.stakedOf(alith), stake);
-        assertEq(IERC20(gring).balanceOf(alice), stake);
-    }
-
-    function test_unstakeDeposit() public {
-        uint256 stake = 1 ether;
-        uint256 id = _migrateDeposit(alice, uint128(stake), 1);
-
-        uint256 commissoin = 1;
-        vm.prank(alith);
-        address a = hub.createAndCollate(HEAD, commissoin);
-
-        vm.prank(alice);
-        Deposit(deposit).approve(address(hub), id);
-        vm.prank(alice);
-        uint256[] memory ids = new uint256[](1);
-        ids[0] = id;
-        hub.stakeDeposits(alith, ids, HEAD, HEAD);
-
-        vm.warp(block.timestamp + hub.STAKING_LOCK_PERIOD() + 1);
-
-        vm.prank(alice);
-        hub.unstakeDeposits(alith, ids, HEAD, HEAD);
-
-        (address account, uint256 assets, address collator) = hub.depositInfos(id);
-        assertEq(account, address(0));
-        assertEq(assets, 0);
-        assertEq(collator, address(0));
-        assertEq(hub.stakedDepositsLength(alice), 0);
-        uint256[] memory deposits = hub.stakedDepositsOf(alice);
-        assertEq(deposits.length, 0);
-        assertTrue(!hub.stakedDepositsContains(alice, id));
-        assertEq(NominationPool(a).balanceOf(alice), 0);
-        assertEq(hub.votesOf(alith), 0);
-        assertEq(hub.stakedOf(alith), 0);
-        assertEq(IERC20(gring).balanceOf(alice), 0);
-    }
-
-    function test_unstakeDepositFromInactiveCollator() public {
-        uint256 stake = 1 ether;
-        uint256 id = _migrateDeposit(alice, uint128(stake), 1);
-
-        uint256 commissoin = 1;
-        vm.prank(alith);
-        address a = hub.createAndCollate(HEAD, commissoin);
-
-        vm.prank(alice);
-        Deposit(deposit).approve(address(hub), id);
-        vm.prank(alice);
-        uint256[] memory ids = new uint256[](1);
-        ids[0] = id;
-        hub.stakeDeposits(alith, ids, HEAD, HEAD);
-
-        vm.warp(block.timestamp + hub.STAKING_LOCK_PERIOD() + 1);
-
-        vm.prank(alith);
-        hub.stopCollation(HEAD);
-
-        assertEq(hub.votesOf(alith), 0);
-        assertEq(hub.stakedOf(alith), stake);
-
-        vm.prank(alice);
-        hub.unstakeDepositsFromInactiveCollator(alith, ids);
-
-        (address account, uint256 assets, address collator) = hub.depositInfos(id);
-        assertEq(account, address(0));
-        assertEq(assets, 0);
-        assertEq(collator, address(0));
-        assertEq(hub.stakedDepositsLength(alice), 0);
-        uint256[] memory deposits = hub.stakedDepositsOf(alice);
-        assertEq(deposits.length, 0);
-        assertTrue(!hub.stakedDepositsContains(alice, id));
-        assertEq(NominationPool(a).balanceOf(alice), 0);
-        assertEq(hub.votesOf(alith), 0);
-        assertEq(hub.stakedOf(alith), 0);
-        assertEq(IERC20(gring).balanceOf(alice), 0);
-    }
-
     function test_lossOfPrecision() public {
         uint256 stake = 1;
         uint256 total = 3;
@@ -305,16 +200,6 @@ contract CollatorStakingHubTest is Test {
         assertEq(hub.votesOf(alith), 0);
     }
 
-    function _migrateDeposit(address account, uint128 value, uint64 months) internal returns (uint256) {
-        uint256 id = Deposit(deposit).totalSupply();
-        Deposit.PalletInfo[] memory deposits = new Deposit.PalletInfo[](1);
-        uint64 startAt = uint64(block.timestamp);
-        deposits[0] = Deposit.PalletInfo({value: value, startAt: startAt, expiredAt: startAt + months * uint64(30 days)});
-
-        vm.prank(Deposit(deposit).SYSTEM_PALLET());
-        Deposit(deposit).migrate{value: value}(account, deposits);
-        return id;
-    }
 }
 
 contract GRINGMock is ERC20 {

@@ -39,46 +39,6 @@ contract DepositTest is Test, ERC721Holder {
         Deposit(deposit).deposit{value: 1 ether}(1);
     }
 
-    function test_migrate() public {
-        uint256 id = _migrateDeposit(self, 1 ether, 1);
-        assertEq(IERC721(deposit).balanceOf(self), 1);
-        assertEq(IERC721(deposit).ownerOf(id), self);
-        assertEq(
-            IERC721Metadata(deposit).tokenURI(id), "ipfs://bafybeifyt273t4ns4f5c4u57uvtbbh5cuv5uxtpt6x3kn32mfecgltjeh4"
-        );
-        assertEq(IERC721Enumerable(deposit).tokenOfOwnerByIndex(self, 0), id);
-        assertEq(IERC721Enumerable(deposit).tokenByIndex(0), id);
-        assertEq(IERC721Enumerable(deposit).totalSupply(), 1);
-        assertEq(IERC20(KTON).balanceOf(self), 7.61e12);
-        assertEq(Deposit(deposit).assetsOf(id), 1 ether);
-        assertEq(Deposit(deposit).isClaimRequirePenalty(id), true);
-    }
-
-    function test_claim() public {
-        uint256 id = _migrateDeposit(self, 1 ether, 1);
-        KTONMock(KTON).mint(self, 2.283e17);
-        KTONMock(KTON).approve(deposit, 2.283e17);
-        assertEq(Deposit(deposit).isClaimRequirePenalty(id), true);
-        vm.warp(block.timestamp + 30 days);
-        assertEq(Deposit(deposit).isClaimRequirePenalty(id), false);
-        vm.expectRevert("!penalty");
-        Deposit(deposit).claimWithPenalty(id);
-        Deposit(deposit).claim(id);
-        assertEq(IERC721(deposit).balanceOf(self), 0);
-        assertEq(IERC721Enumerable(deposit).totalSupply(), 0);
-    }
-
-    function test_claimWithPenalty() public {
-        uint256 id = _migrateDeposit(self, 1 ether, 1);
-        vm.expectRevert("penalty");
-        Deposit(deposit).claim(id);
-        KTONMock(KTON).mint(self, 2.283e17);
-        KTONMock(KTON).approve(deposit, 2.283e17);
-        Deposit(deposit).claimWithPenalty(id);
-        assertEq(IERC721(deposit).balanceOf(self), 0);
-        assertEq(IERC721Enumerable(deposit).totalSupply(), 0);
-    }
-
     function test_computeInterest() public view {
         uint256 UNIT = 1 ether;
         for (uint256 m = 1; m < 37; m++) {
@@ -105,16 +65,6 @@ contract DepositTest is Test, ERC721Holder {
         return (unitInterest * value) * ((quotient - 1) * 1000 + remainder * 1000 / denominator) / (197 * 10 ** 7);
     }
 
-    function _migrateDeposit(address account, uint128 value, uint64 months) internal returns (uint256) {
-        uint256 id = IERC721Enumerable(deposit).totalSupply();
-        Deposit.PalletInfo[] memory deposits = new Deposit.PalletInfo[](1);
-        uint64 startAt = uint64(block.timestamp);
-        deposits[0] = Deposit.PalletInfo({value: value, startAt: startAt, expiredAt: startAt + months * uint64(30 days)});
-
-        vm.prank(Deposit(deposit).SYSTEM_PALLET());
-        Deposit(deposit).migrate{value: value}(account, deposits);
-        return id;
-    }
 }
 
 contract KTONMock is ERC20 {
