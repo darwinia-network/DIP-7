@@ -34,8 +34,13 @@ contract DepositTest is Test, ERC721Holder {
         assertEq(IERC721Enumerable(deposit).totalSupply(), 0);
     }
 
-    function test_deposit() public {
-        uint256 id = Deposit(deposit).deposit{value: 1 ether}(1);
+    function test_depositDisabled() public {
+        vm.expectRevert(bytes("disabled"));
+        Deposit(deposit).deposit{value: 1 ether}(1);
+    }
+
+    function test_migrate() public {
+        uint256 id = _migrateDeposit(self, 1 ether, 1);
         assertEq(IERC721(deposit).balanceOf(self), 1);
         assertEq(IERC721(deposit).ownerOf(id), self);
         assertEq(
@@ -50,7 +55,7 @@ contract DepositTest is Test, ERC721Holder {
     }
 
     function test_claim() public {
-        uint256 id = Deposit(deposit).deposit{value: 1 ether}(1);
+        uint256 id = _migrateDeposit(self, 1 ether, 1);
         KTONMock(KTON).mint(self, 2.283e17);
         KTONMock(KTON).approve(deposit, 2.283e17);
         assertEq(Deposit(deposit).isClaimRequirePenalty(id), true);
@@ -64,7 +69,7 @@ contract DepositTest is Test, ERC721Holder {
     }
 
     function test_claimWithPenalty() public {
-        uint256 id = Deposit(deposit).deposit{value: 1 ether}(1);
+        uint256 id = _migrateDeposit(self, 1 ether, 1);
         vm.expectRevert("penalty");
         Deposit(deposit).claim(id);
         KTONMock(KTON).mint(self, 2.283e17);
@@ -98,6 +103,17 @@ contract DepositTest is Test, ERC721Holder {
         // and the multiplier is about 3
         // ((quotient - 1) * 1000 + remainder * 1000 / denominator) is 197 when _month is 12.
         return (unitInterest * value) * ((quotient - 1) * 1000 + remainder * 1000 / denominator) / (197 * 10 ** 7);
+    }
+
+    function _migrateDeposit(address account, uint128 value, uint64 months) internal returns (uint256) {
+        uint256 id = IERC721Enumerable(deposit).totalSupply();
+        Deposit.PalletInfo[] memory deposits = new Deposit.PalletInfo[](1);
+        uint64 startAt = uint64(block.timestamp);
+        deposits[0] = Deposit.PalletInfo({value: value, startAt: startAt, expiredAt: startAt + months * uint64(30 days)});
+
+        vm.prank(Deposit(deposit).SYSTEM_PALLET());
+        Deposit(deposit).migrate{value: value}(account, deposits);
+        return id;
     }
 }
 

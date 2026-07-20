@@ -174,9 +174,7 @@ contract CollatorStakingHubTest is Test {
 
     function test_stakeDeposit() public {
         uint256 stake = 1 ether;
-        vm.deal(alice, stake);
-        vm.prank(alice);
-        uint256 id = Deposit(deposit).deposit{value: stake}(1);
+        uint256 id = _migrateDeposit(alice, uint128(stake), 1);
 
         uint256 commissoin = 1;
         vm.prank(alith);
@@ -207,9 +205,7 @@ contract CollatorStakingHubTest is Test {
 
     function test_unstakeDeposit() public {
         uint256 stake = 1 ether;
-        vm.deal(alice, stake);
-        vm.prank(alice);
-        uint256 id = Deposit(deposit).deposit{value: stake}(1);
+        uint256 id = _migrateDeposit(alice, uint128(stake), 1);
 
         uint256 commissoin = 1;
         vm.prank(alith);
@@ -243,9 +239,7 @@ contract CollatorStakingHubTest is Test {
 
     function test_unstakeDepositFromInactiveCollator() public {
         uint256 stake = 1 ether;
-        vm.deal(alice, stake);
-        vm.prank(alice);
-        uint256 id = Deposit(deposit).deposit{value: stake}(1);
+        uint256 id = _migrateDeposit(alice, uint128(stake), 1);
 
         uint256 commissoin = 1;
         vm.prank(alith);
@@ -309,6 +303,17 @@ contract CollatorStakingHubTest is Test {
         hub.unstakeRING(alith, total, HEAD, HEAD);
         assertEq(hub.stakedOf(alith), 0);
         assertEq(hub.votesOf(alith), 0);
+    }
+
+    function _migrateDeposit(address account, uint128 value, uint64 months) internal returns (uint256) {
+        uint256 id = Deposit(deposit).totalSupply();
+        Deposit.PalletInfo[] memory deposits = new Deposit.PalletInfo[](1);
+        uint64 startAt = uint64(block.timestamp);
+        deposits[0] = Deposit.PalletInfo({value: value, startAt: startAt, expiredAt: startAt + months * uint64(30 days)});
+
+        vm.prank(Deposit(deposit).SYSTEM_PALLET());
+        Deposit(deposit).migrate{value: value}(account, deposits);
+        return id;
     }
 }
 

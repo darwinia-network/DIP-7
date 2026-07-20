@@ -91,9 +91,7 @@ contract GovernanceRingTest is Test {
 
     function test_wrapDeposit() public {
         uint256 stake = 1 ether;
-        vm.deal(alice, stake);
-        vm.prank(alice);
-        uint256 id = Deposit(deposit).deposit{value: stake}(1);
+        uint256 id = _migrateDeposit(alice, uint128(stake), 1);
 
         vm.prank(alice);
         Deposit(deposit).approve(address(gRING), id);
@@ -111,9 +109,7 @@ contract GovernanceRingTest is Test {
 
     function test_unwrapDeposit() public {
         uint256 stake = 1 ether;
-        vm.deal(alice, stake);
-        vm.prank(alice);
-        uint256 id = Deposit(deposit).deposit{value: stake}(1);
+        uint256 id = _migrateDeposit(alice, uint128(stake), 1);
 
         vm.prank(alice);
         Deposit(deposit).approve(address(gRING), id);
@@ -128,5 +124,16 @@ contract GovernanceRingTest is Test {
         uint256[] memory deposits = gRING.wrapDepositsOf(alice);
         assertEq(deposits.length, 0);
         assertTrue(!gRING.wrapDepositsContains(alice, id));
+    }
+
+    function _migrateDeposit(address account, uint128 value, uint64 months) internal returns (uint256) {
+        uint256 id = Deposit(deposit).totalSupply();
+        Deposit.PalletInfo[] memory deposits = new Deposit.PalletInfo[](1);
+        uint64 startAt = uint64(block.timestamp);
+        deposits[0] = Deposit.PalletInfo({value: value, startAt: startAt, expiredAt: startAt + months * uint64(30 days)});
+
+        vm.prank(Deposit(deposit).SYSTEM_PALLET());
+        Deposit(deposit).migrate{value: value}(account, deposits);
+        return id;
     }
 }
