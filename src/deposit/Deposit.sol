@@ -140,7 +140,7 @@ contract Deposit is
     }
 
     function deposit(uint64 months) external payable nonReentrant returns (uint256) {
-        return _deposit(msg.sender, msg.value, months);
+        revert("disabled");
     }
 
     function claim(uint256 depositId) external nonReentrant {

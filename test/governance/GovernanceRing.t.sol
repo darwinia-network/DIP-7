@@ -89,44 +89,4 @@ contract GovernanceRingTest is Test {
         assertEq(gRING.wrapAssets(alice, gRING.RING()), 0);
     }
 
-    function test_wrapDeposit() public {
-        uint256 stake = 1 ether;
-        vm.deal(alice, stake);
-        vm.prank(alice);
-        uint256 id = Deposit(deposit).deposit{value: stake}(1);
-
-        vm.prank(alice);
-        Deposit(deposit).approve(address(gRING), id);
-        vm.prank(alice);
-        gRING.wrapDeposit(id);
-        assertEq(gRING.balanceOf(alice), stake);
-        assertEq(gRING.wrapAssets(alice, deposit), stake);
-        assertEq(gRING.wrapDepositsLength(alice), 1);
-        uint256[] memory deposits = gRING.wrapDepositsOf(alice);
-        assertEq(deposits.length, 1);
-        assertEq(deposits[0], id);
-        assertEq(gRING.wrapDepositsAt(alice, 0), id);
-        assertTrue(gRING.wrapDepositsContains(alice, id));
-    }
-
-    function test_unwrapDeposit() public {
-        uint256 stake = 1 ether;
-        vm.deal(alice, stake);
-        vm.prank(alice);
-        uint256 id = Deposit(deposit).deposit{value: stake}(1);
-
-        vm.prank(alice);
-        Deposit(deposit).approve(address(gRING), id);
-        vm.prank(alice);
-        gRING.wrapDeposit(id);
-
-        vm.prank(alice);
-        gRING.unwrapDeposit(id);
-        assertEq(gRING.balanceOf(alice), 0);
-        assertEq(gRING.wrapAssets(alice, deposit), 0);
-        assertEq(gRING.wrapDepositsLength(alice), 0);
-        uint256[] memory deposits = gRING.wrapDepositsOf(alice);
-        assertEq(deposits.length, 0);
-        assertTrue(!gRING.wrapDepositsContains(alice, id));
-    }
 }

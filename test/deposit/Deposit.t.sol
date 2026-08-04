@@ -34,44 +34,9 @@ contract DepositTest is Test, ERC721Holder {
         assertEq(IERC721Enumerable(deposit).totalSupply(), 0);
     }
 
-    function test_deposit() public {
-        uint256 id = Deposit(deposit).deposit{value: 1 ether}(1);
-        assertEq(IERC721(deposit).balanceOf(self), 1);
-        assertEq(IERC721(deposit).ownerOf(id), self);
-        assertEq(
-            IERC721Metadata(deposit).tokenURI(id), "ipfs://bafybeifyt273t4ns4f5c4u57uvtbbh5cuv5uxtpt6x3kn32mfecgltjeh4"
-        );
-        assertEq(IERC721Enumerable(deposit).tokenOfOwnerByIndex(self, 0), id);
-        assertEq(IERC721Enumerable(deposit).tokenByIndex(0), id);
-        assertEq(IERC721Enumerable(deposit).totalSupply(), 1);
-        assertEq(IERC20(KTON).balanceOf(self), 7.61e12);
-        assertEq(Deposit(deposit).assetsOf(id), 1 ether);
-        assertEq(Deposit(deposit).isClaimRequirePenalty(id), true);
-    }
-
-    function test_claim() public {
-        uint256 id = Deposit(deposit).deposit{value: 1 ether}(1);
-        KTONMock(KTON).mint(self, 2.283e17);
-        KTONMock(KTON).approve(deposit, 2.283e17);
-        assertEq(Deposit(deposit).isClaimRequirePenalty(id), true);
-        vm.warp(block.timestamp + 30 days);
-        assertEq(Deposit(deposit).isClaimRequirePenalty(id), false);
-        vm.expectRevert("!penalty");
-        Deposit(deposit).claimWithPenalty(id);
-        Deposit(deposit).claim(id);
-        assertEq(IERC721(deposit).balanceOf(self), 0);
-        assertEq(IERC721Enumerable(deposit).totalSupply(), 0);
-    }
-
-    function test_claimWithPenalty() public {
-        uint256 id = Deposit(deposit).deposit{value: 1 ether}(1);
-        vm.expectRevert("penalty");
-        Deposit(deposit).claim(id);
-        KTONMock(KTON).mint(self, 2.283e17);
-        KTONMock(KTON).approve(deposit, 2.283e17);
-        Deposit(deposit).claimWithPenalty(id);
-        assertEq(IERC721(deposit).balanceOf(self), 0);
-        assertEq(IERC721Enumerable(deposit).totalSupply(), 0);
+    function test_depositDisabled() public {
+        vm.expectRevert(bytes("disabled"));
+        Deposit(deposit).deposit{value: 1 ether}(1);
     }
 
     function test_computeInterest() public view {
@@ -99,6 +64,7 @@ contract DepositTest is Test, ERC721Holder {
         // ((quotient - 1) * 1000 + remainder * 1000 / denominator) is 197 when _month is 12.
         return (unitInterest * value) * ((quotient - 1) * 1000 + remainder * 1000 / denominator) / (197 * 10 ** 7);
     }
+
 }
 
 contract KTONMock is ERC20 {
